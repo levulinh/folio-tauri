@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { FolioEditor } from "../editor/schema";
 import { usePageStore } from "../state/pageStore";
 import { usePagesStore } from "../state/pagesStore";
-import { flushForQuit } from "../state/quitFlush";
+import { flushForQuit, titleFlushCount } from "../state/quitFlush";
 import { useUiStore } from "../state/uiStore";
 import { PageTitle } from "./PageTitle";
 
@@ -107,11 +107,36 @@ describe("PageTitle quit flush", () => {
     expect(rename).toHaveBeenCalledTimes(1);
   });
 
-  it("stops flushing a title once it is unmounted", async () => {
+  it("unregisters from the quit registry on unmount", () => {
+    const before = titleFlushCount();
     const { unmount } = render(<PageTitle pageId="p1" />);
+    expect(titleFlushCount()).toBe(before + 1);
+    unmount();
+    expect(titleFlushCount()).toBe(before);
+  });
+
+  it("a dirty title unmounted then flushed for quit renames exactly once", async () => {
+    const { unmount } = render(<PageTitle pageId="p1" />);
+    type("một lần");
     unmount();
     await flushForQuit();
-    expect(rename).not.toHaveBeenCalled();
+    expect(rename).toHaveBeenCalledExactlyOnceWith("p1", "một lần");
+  });
+
+  it("flushForQuit waits for a rename started by an unmount save", async () => {
+    let finish!: () => void;
+    rename.mockImplementationOnce(() => new Promise<void>((r) => (finish = r)));
+    const { unmount } = render(<PageTitle pageId="p1" />);
+    type("đang lưu");
+    unmount();
+    let done = false;
+    const flushing = flushForQuit().then(() => (done = true));
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(done).toBe(false);
+    finish();
+    await flushing;
+    expect(done).toBe(true);
   });
 });
 

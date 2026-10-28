@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { vi } from "../i18n/vi";
-import { registerTitleFlush } from "../state/quitFlush";
+import { registerTitleFlush, trackRename } from "../state/quitFlush";
 import { usePageStore } from "../state/pageStore";
 import { usePagesStore } from "../state/pagesStore";
 import { reportError, useUiStore } from "../state/uiStore";
@@ -32,7 +32,7 @@ export function PageTitle({ pageId }: { pageId: string }) {
     const title = latest.current;
     const page = usePagesStore.getState().pages.find((p) => p.id === pageId);
     if (!page || page.title === title) return Promise.resolve(); // deleted mid-debounce: drop silently
-    return usePagesStore.getState().rename(pageId, title).catch(reportError);
+    return trackRename(usePagesStore.getState().rename(pageId, title).catch(reportError));
   };
   const saveRef = useRef(save);
   saveRef.current = save;

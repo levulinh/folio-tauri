@@ -20,7 +20,7 @@
 - [ ] Đổi tên từ thanh bên: rê chuột → nút "…" → Đổi tên, gõ tên mới, Enter → tên đổi cả ở thanh bên và ở ô tiêu đề trang.
 - [ ] Đổi tên, gõ dở rồi bấm Esc: tên cũ được giữ.
 - [ ] Đổi tên ngay trong ô tiêu đề của trang, bấm sang chỗ khác: thanh bên cập nhật tên mới.
-- [ ] Xoá: nút "…" → Xoá → hộp thoại xác nhận hiện ra, nói rõ nếu có trang con ("và N trang con"). Bấm Huỷ → trang còn nguyên. Làm lại, bấm xác nhận → trang và các trang con biến mất.
+- [ ] Xoá: nút "…" → Xoá → hộp thoại xác nhận hiện ra, nói rõ nếu có trang con ("và N trang con"). Bấm Huỷ → trang còn nguyên. Làm lại, bấm nút "Xoá" trong hộp thoại → trang và các trang con biến mất.
 - [ ] Xoá hết các trang: quay lại màn hình trống ban đầu.
 
 ## 2. Phím tắt Markdown (gõ ở dòng trống đầu tiên của trang)

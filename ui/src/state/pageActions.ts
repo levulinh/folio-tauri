@@ -10,8 +10,11 @@ export async function createAndOpenPage(parentId?: string): Promise<string | nul
     if (parentId !== undefined) useExpandedStore.getState().set(parentId, true);
     useUiStore.getState().requestTitleFocus(page.id);
     await usePageStore.getState().open(page.id);
+    // open() resolves quietly when a newer open() won; then the request is stale.
+    if (usePageStore.getState().pageId !== page.id) useUiStore.getState().clearTitleFocus();
     return page.id;
   } catch (e) {
+    useUiStore.getState().clearTitleFocus();
     reportError(e);
     return null;
   }
