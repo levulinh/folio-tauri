@@ -15,3 +15,8 @@ Status: decided (2026-10-28)
 - `ui` script `tauri` is `cd .. && tauri` (not bare `tauri`): the Tauri CLI finds `crates/folio-app/tauri.conf.json` only from the repo root, and `beforeDevCommand` (`npm run -w ui dev`) must also run from the root, where the npm workspace is defined.
 - `scripts/check.sh` uses `git diff --exit-code -- ui/src/backend/generated` (with `--`) so it does not error while the folder does not exist yet.
 - `.gitignore`: besides the entries listed in the task, added `crates/folio-app/gen/schemas` (the listed `gen/schemas` is anchored to the repo root, so it did not ignore Tauri's generated schemas) and `*.tsbuildinfo` (written by `tsc -b`).
+
+## D-003 Store accessors and error messages (Phase 1 Task 2)
+Status: decided (2026-10-28)
+- `Store::conn` / `conn_mut` are `pub`, not `pub(crate)`: integration tests in `crates/folio-core/tests/` are a separate crate and read pragmas and `sqlite_master` through them. `Store::assets_dir()` is added so the field is used and later tasks can resolve asset paths.
+- `CoreError` messages (English, for logs) are `#[error(...)]` strings of our own; the UI maps `code` to Vietnamese text.
