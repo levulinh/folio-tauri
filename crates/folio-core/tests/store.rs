@@ -62,8 +62,10 @@ fn newer_schema_is_refused() {
     let newer = MIGRATIONS.len() as i64 + 1;
     {
         let conn = rusqlite::Connection::open(&db).unwrap();
-        conn.execute_batch(&format!("PRAGMA user_version = {newer}"))
-            .unwrap();
+        conn.execute_batch(&format!(
+            "PRAGMA journal_mode=DELETE; PRAGMA user_version = {newer}"
+        ))
+        .unwrap();
     }
     let err = Store::open(&db, &assets).err().expect("must refuse");
     match &err {
@@ -80,6 +82,13 @@ fn newer_schema_is_refused() {
         .query_row("PRAGMA user_version", [], |r| r.get(0))
         .unwrap();
     assert_eq!(v, newer);
+    // Refusing must not have switched the journal mode or created WAL files.
+    let mode: String = conn
+        .query_row("PRAGMA journal_mode", [], |r| r.get(0))
+        .unwrap();
+    assert_eq!(mode, "delete");
+    assert!(!dir.path().join("folio.db-wal").exists());
+    assert!(!dir.path().join("folio.db-shm").exists());
 }
 
 #[test]

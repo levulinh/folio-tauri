@@ -80,6 +80,8 @@ impl Store {
 fn configure(conn: &Connection) -> Result<()> {
     // busy_timeout first: switching to WAL needs a lock another opener may hold.
     conn.execute_batch("PRAGMA busy_timeout=5000;")?;
+    // Refuse a newer schema with a plain read, before anything writes to the file.
+    check_schema_not_newer(conn.query_row("PRAGMA user_version", [], |r| r.get(0))?)?;
     enable_wal(conn)?;
     conn.execute_batch("PRAGMA foreign_keys=ON; PRAGMA synchronous=NORMAL;")?;
     Ok(())
@@ -100,9 +102,30 @@ fn enable_wal(conn: &Connection) -> Result<()> {
                 attempts += 1;
                 std::thread::sleep(std::time::Duration::from_millis(WAL_RETRY_PAUSE_MS));
             }
+            Err(rusqlite::Error::SqliteFailure(e, msg))
+                if e.code == rusqlite::ErrorCode::DatabaseBusy =>
+            {
+                let reason = msg.unwrap_or_else(|| e.to_string());
+                // Stays a `Db` error (code "db") with context in the message.
+                return Err(rusqlite::Error::SqliteFailure(
+                    e,
+                    Some(format!(
+                        "could not enable WAL after {WAL_RETRIES} attempts: {reason}"
+                    )),
+                )
+                .into());
+            }
             Err(e) => return Err(e.into()),
         }
     }
+}
+
+fn check_schema_not_newer(found: i64) -> Result<()> {
+    let known = MIGRATIONS.len() as i64;
+    if found > known {
+        return Err(CoreError::SchemaTooNew { found, known });
+    }
+    Ok(())
 }
 
 fn migrate(conn: &mut Connection) -> Result<()> {
@@ -110,13 +133,7 @@ fn migrate(conn: &mut Connection) -> Result<()> {
     // opener waits (busy_timeout) and then sees the finished schema.
     let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
     let version: i64 = tx.query_row("PRAGMA user_version", [], |r| r.get(0))?;
-    let known = MIGRATIONS.len() as i64;
-    if version > known {
-        return Err(CoreError::SchemaTooNew {
-            found: version,
-            known,
-        });
-    }
+    check_schema_not_newer(version)?;
     for (index, sql) in MIGRATIONS.iter().enumerate().skip(version as usize) {
         tx.execute_batch(sql)?;
         tx.execute_batch(&format!("PRAGMA user_version = {}", index + 1))?;

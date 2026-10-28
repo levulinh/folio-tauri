@@ -225,5 +225,6 @@ Status: accepted.
 ## D-031 Store opening is race-safe and refuses newer schemas (Phase 3 Task 6a)
 - `busy_timeout` is set before `journal_mode=WAL`. Switching a fresh file to WAL returns SQLITE_BUSY immediately (the busy handler is not consulted) when another connection is switching it too, so `enable_wal` retries for a bounded time (100 x 20 ms).
 - Migrations run in one `BEGIN IMMEDIATE` transaction that also reads `user_version`: a second opener waits for the write lock, then sees the finished schema and migrates nothing.
-- `user_version` greater than `MIGRATIONS.len()` fails with `CoreError::SchemaTooNew { found, known }` (code `"db"`, no new code) and leaves the file untouched; the shell's existing open error prefixes the db path. `db::MIGRATIONS` is `pub` so tests compare against the real count.
+- `user_version` greater than `MIGRATIONS.len()` fails with `CoreError::SchemaTooNew { found, known }` (code `"db"`, no new code) and leaves the file untouched (the version is read plainly before the WAL switch, and again inside the migration transaction); the shell's existing open error prefixes the db path. `db::MIGRATIONS` is `pub` so tests compare against the real count.
+- All migrations run inside one transaction. A future migration that needs `PRAGMA foreign_keys=OFF` (table rebuild) must be handled outside it, since that pragma is a no-op inside a transaction.
 Status: accepted.
