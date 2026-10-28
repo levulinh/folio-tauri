@@ -37,17 +37,17 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #9a9a9a;
+  background: var(--text-muted);
 }
 
 .saveStatus[data-status="saving"] .saveDot {
-  background: #e0a030;
+  background: var(--warn);
 }
 
 .saveStatus[data-status="error"] {
-  color: #d04040;
+  color: var(--danger);
 }
 
 .saveStatus[data-status="error"] .saveDot {
-  background: #d04040;
+  background: var(--danger);
 }

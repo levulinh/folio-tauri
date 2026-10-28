@@ -13,8 +13,18 @@ export interface SavePipeline {
   /** Sends every pending change; resolves once it was attempted (never rejects). */
   flush(): Promise<void>;
   dispose(): void;
+  /**
+   * Stops this pipeline for good (no timers, no new requests), waits for an in-flight request and
+   * returns what it still owes the backend, for a new pipeline on the same tab to adopt.
+   */
+  handOff(): Promise<PipelineHandOff>;
   status(): SaveStatus;
   onStatus(cb: (s: SaveStatus) => void): () => void;
+}
+
+export interface PipelineHandOff {
+  ids: string[];
+  needsResync: boolean;
 }
 
 export interface SavePipelineOptions {
@@ -27,6 +37,13 @@ export interface SavePipelineOptions {
   retryBaseMs?: number;
   retryMaxMs?: number;
   onError?: (e: unknown) => void;
+  /**
+   * Ids of the blocks the backend has. Document blocks outside it (BlockNote's default block on an
+   * empty page, blocks adopted from a retired editor) are marked dirty at creation.
+   */
+  storedIds?: Iterable<string>;
+  /** Unsaved work of a retired pipeline on the same tab (see `handOff`). */
+  adopt?: PipelineHandOff;
 }
 
 type Doc = FolioEditor["document"];
@@ -71,7 +88,19 @@ function storedIds(nodes: BlockNode[], into: Set<string>): Set<string> {
 
 const errorCode = (e: unknown): string => (isErrorPayload(e) ? e.code : "");
 
+/** Runs a callback that must never break the save path (toast, listeners, error hook). */
+function safely(fn: () => void): void {
+  try {
+    fn();
+  } catch (e) {
+    console.error("save pipeline: callback threw", e);
+  }
+}
+
+const logError = (e: unknown) => console.error("save pipeline error", e);
+
 export function createSavePipeline(o: SavePipelineOptions): SavePipeline {
+  const onError = o.onError ?? logError;
   const debounceMs = o.debounceMs ?? 600;
   const maxWaitMs = o.maxWaitMs ?? 3000;
   const retryBaseMs = o.retryBaseMs ?? 2000;
@@ -91,12 +120,12 @@ export function createSavePipeline(o: SavePipelineOptions): SavePipeline {
   let last: SaveStatus = "saved";
   const listeners = new Set<(s: SaveStatus) => void>();
 
-  const status = (): SaveStatus => (errored ? "error" : dirty.size > 0 || inFlight || needsResync ? "saving" : "saved");
+  const status = (): SaveStatus => (disposed ? "saved" : errored ? "error" : dirty.size > 0 || inFlight || needsResync ? "saving" : "saved");
   const emit = () => {
     const s = status();
     if (s === last) return;
     last = s;
-    for (const cb of [...listeners]) cb(s);
+    for (const cb of [...listeners]) safely(() => cb(s));
   };
 
   const schedule = () => {
@@ -123,6 +152,16 @@ export function createSavePipeline(o: SavePipelineOptions): SavePipeline {
     emit();
   }, false);
 
+  if (o.storedIds) {
+    const stored = new Set(o.storedIds);
+    for (const id of place(o.editor.document, null, new Map()).keys()) if (!stored.has(id)) dirty.add(id);
+  }
+  if (o.adopt) {
+    for (const id of o.adopt.ids) dirty.add(id);
+    needsResync = o.adopt.needsResync;
+  }
+  last = status();
+
   /** Every block of the document plus a delete for stored blocks the document no longer has. */
   async function resyncOps(): Promise<BlockOp[]> {
     const placed = place(o.editor.document, null, new Map());
@@ -142,8 +181,8 @@ export function createSavePipeline(o: SavePipelineOptions): SavePipeline {
     return ops;
   }
 
-  function fail(e: unknown, taken: Set<string>): void {
-    o.onError?.(e);
+  function fail(e: unknown, taken: Set<string>, startedAt: number): void {
+    safely(() => onError(e));
     if (errorCode(e) === "not_found") {
       // The tab or page was deleted: nothing left to save.
       dirty = new Set();
@@ -159,10 +198,13 @@ export function createSavePipeline(o: SavePipelineOptions): SavePipeline {
       needsResync = true;
     }
     for (const id of taken) dirty.add(id);
+    if (disposed) return; // handed off: the adopting pipeline owns these ids now
+    firstDirtyAt = Math.min(firstDirtyAt, startedAt);
+    clearTimeout(debounceTimer); // retries follow the backoff only
     errored = true;
     if (!toasted) {
       toasted = true;
-      useUiStore.getState().toast(vi.errors.saveFailed);
+      safely(() => useUiStore.getState().toast(vi.errors.saveFailed));
     }
     const delay = Math.min(retryBaseMs * 2 ** failures, retryMaxMs);
     failures += 1;
@@ -178,6 +220,7 @@ export function createSavePipeline(o: SavePipelineOptions): SavePipeline {
     if (disposed) return;
     if (dirty.size === 0 && !needsResync) return;
     clearTimeout(debounceTimer);
+    const startedAt = firstDirtyAt;
     const taken = dirty;
     dirty = new Set();
     inFlight = true;
@@ -193,7 +236,7 @@ export function createSavePipeline(o: SavePipelineOptions): SavePipeline {
       retryTimer = undefined;
     } catch (e) {
       inFlight = false;
-      fail(e, taken);
+      fail(e, taken, startedAt);
       return;
     }
     inFlight = false;
@@ -205,7 +248,7 @@ export function createSavePipeline(o: SavePipelineOptions): SavePipeline {
   }
 
   function flush(): Promise<void> {
-    queue = queue.then(run);
+    queue = queue.then(run).catch(logError);
     return queue;
   }
 
@@ -216,9 +259,25 @@ export function createSavePipeline(o: SavePipelineOptions): SavePipeline {
     clearTimeout(retryTimer);
   }
 
+  async function handOff(): Promise<PipelineHandOff> {
+    disposed = true;
+    unsubscribe();
+    clearTimeout(debounceTimer);
+    clearTimeout(retryTimer);
+    await queue;
+    return { ids: [...dirty], needsResync };
+  }
+
+  // Unsaved state at creation (default block, adopted work) is sent like any change.
+  if (dirty.size > 0 || needsResync) {
+    firstDirtyAt = Date.now();
+    schedule();
+  }
+
   return {
     flush,
     dispose,
+    handOff,
     status,
     onStatus(cb) {
       listeners.add(cb);

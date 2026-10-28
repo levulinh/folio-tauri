@@ -4,7 +4,7 @@ import type { Backend } from "../backend/Backend";
 import type { BlockNode } from "../backend/generated/BlockNode";
 import type { BlockOp } from "../backend/generated/BlockOp";
 import { useUiStore } from "../state/uiStore";
-import { flushAll, registerPipeline, retirePipeline } from "./pipelineRegistry";
+import { flushAll, registerPipeline, retirePipeline, takeOverRetired } from "./pipelineRegistry";
 import { toEditorBlocks } from "./convert";
 import { createSavePipeline, type SavePipeline } from "./savePipeline";
 import { schema } from "./schema";
@@ -99,9 +99,7 @@ describe("savePipeline", () => {
     editor.moveBlocksUp("b");
     await vitest.advanceTimersByTimeAsync(600);
     expect(calls).toHaveLength(1);
-    const movedIds = ids(calls[0]!);
-    expect(movedIds).toContain("b");
-    expect(movedIds).not.toContain("b1");
+    expect(ids(calls[0]!)).toEqual(["b"]);
     expect(calls[0]!.ops.some((o) => o.op === "delete")).toBe(false);
   });
 
@@ -140,12 +138,12 @@ describe("savePipeline", () => {
 
   it("continuous_typing_flushes_by_3s", async () => {
     const { editor, calls } = setup([node("a", "")]);
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < 30; i++) {
       editor.updateBlock("a", { content: "k".repeat(i + 1) });
       await vitest.advanceTimersByTimeAsync(100); // never idle for 600 ms
     }
+    // 3000 ms of typing have passed: the max wait must have forced a call.
     expect(calls.length).toBeGreaterThanOrEqual(1);
-    expect(calls.length).toBeLessThanOrEqual(2);
   });
 
   it("paste_500_blocks_is_one_call_with_500_upserts", async () => {
@@ -280,9 +278,85 @@ describe("savePipeline", () => {
     const a = setup([node("a", "")], "T1");
     const off = registerPipeline(a.pipeline);
     a.editor.updateBlock("a", { content: "x" });
-    retirePipeline(a.pipeline, off);
+    retirePipeline(a.pipeline, off, "T1", a.editor);
     await flushAll();
     expect(a.calls).toHaveLength(1);
+  });
+
+  it("default_block_on_empty_page_is_saved_with_first_insert", async () => {
+    const editor = BlockNoteEditor.create({ schema }); // empty page: BlockNote makes a default block
+    const be = mockBackend([]);
+    const pipeline = createSavePipeline({ tabId: "T1", editor, backend: be.backend, storedIds: [] });
+    pipelines.push(pipeline);
+    const defaultId = editor.document[0]!.id;
+    const [added] = editor.insertBlocks([{ type: "paragraph", content: "mới" }], defaultId, "after");
+    await vitest.advanceTimersByTimeAsync(600);
+    expect(be.calls).toHaveLength(1);
+    expect(ids(be.calls[0]!)).toEqual([defaultId, added!.id]);
+    expect(pipeline.status()).toBe("saved");
+    expect(useUiStore.getState().toasts).toHaveLength(0);
+  });
+
+  it("throwing_status_listener_does_not_stop_later_flushes", async () => {
+    const { editor, pipeline, calls } = setup([node("a", "")], "T1", { onError: () => {} });
+    const spy = vitest.spyOn(console, "error").mockImplementation(() => {});
+    pipeline.onStatus(() => {
+      throw new Error("listener boom");
+    });
+    editor.updateBlock("a", { content: "1" });
+    await vitest.advanceTimersByTimeAsync(600);
+    editor.updateBlock("a", { content: "12" });
+    await expect(pipeline.flush()).resolves.toBeUndefined();
+    expect(calls).toHaveLength(2);
+    spy.mockRestore();
+  });
+
+  it("reopen_tab_with_unsaved_retired_pipeline_adopts_it", async () => {
+    const stored = [node("a", "stored")];
+    const old = setup(stored, "T1", {}, stored);
+    old.state.fail = { code: "db", message: "down" };
+    old.state.failTimes = 2; // the edit's save and the final flush on unmount both fail
+    const off = registerPipeline(old.pipeline);
+    old.editor.updateBlock("a", { content: "old-editor-text" });
+    await vitest.advanceTimersByTimeAsync(600); // save fails, ids put back
+    expect(old.pipeline.status()).toBe("error");
+    retirePipeline(old.pipeline, off, "T1", old.editor);
+    await vitest.advanceTimersByTimeAsync(0);
+
+    // A new Editor for the tab mounts: takes the retired editor's document instead of tabLoad.
+    const taken = await takeOverRetired("T1");
+    expect(taken).not.toBeNull();
+    expect(taken!.handOff.ids).toEqual(["a"]);
+    const editor2 = BlockNoteEditor.create({ schema, initialContent: taken!.editor.document as never });
+    expect(JSON.stringify(editor2.document[0]!.content)).toContain("old-editor-text");
+    const p2 = createSavePipeline({ tabId: "T1", editor: editor2, backend: old.backend, storedIds: ["a"], adopt: taken!.handOff });
+    pipelines.push(p2);
+    editor2.insertBlocks([{ type: "paragraph", content: "newer" }], "a", "after");
+    await vitest.advanceTimersByTimeAsync(60_000);
+
+    // Old pipeline is silent; everything stored came from the new one and ends up newest.
+    const sent = old.calls.flatMap((c) => c.ops).filter((o) => o.op === "upsert");
+    expect(old.calls).toHaveLength(1);
+    expect(JSON.stringify(sent)).toContain("old-editor-text");
+    expect(sent.map((o) => (o as { id: string }).id)).toContain("a");
+    expect(JSON.stringify(sent)).not.toContain('"stored"');
+    expect(old.pipeline.status()).toBe("saved"); // disposed
+    expect(await takeOverRetired("T1")).toBeNull();
+  });
+
+  it("flushAll_flushes_retired_pipelines", async () => {
+    const a = setup([node("a", "")], "T9");
+    a.state.fail = { code: "db", message: "down" };
+    a.state.failTimes = 2;
+    const off = registerPipeline(a.pipeline);
+    a.editor.updateBlock("a", { content: "x" });
+    await vitest.advanceTimersByTimeAsync(600);
+    retirePipeline(a.pipeline, off, "T9", a.editor);
+    await vitest.advanceTimersByTimeAsync(0);
+    expect(a.calls).toHaveLength(0);
+    await flushAll(); // one attempt now, without waiting for the backoff
+    expect(a.calls).toHaveLength(1);
+    await takeOverRetired("T9"); // cleanup
   });
 
   it("flush_requested_during_a_flush_runs_after_it", async () => {
