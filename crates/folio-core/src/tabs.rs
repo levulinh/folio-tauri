@@ -53,7 +53,19 @@ fn touch_page(tx: &Transaction, page_id: &str) -> Result<()> {
 }
 
 impl Store {
+    /// Tabs of a page in order; `NotFound { entity: "page" }` if the page does not exist.
     pub fn list_tabs(&self, page_id: &str) -> Result<Vec<TabMeta>> {
+        let exists: bool = self.conn().query_row(
+            "SELECT EXISTS(SELECT 1 FROM pages WHERE id = ?1)",
+            [page_id],
+            |r| r.get(0),
+        )?;
+        if !exists {
+            return Err(CoreError::NotFound {
+                entity: "page",
+                id: page_id.to_string(),
+            });
+        }
         let mut stmt = self.conn().prepare(&format!(
             "SELECT {TAB_COLS} FROM tabs WHERE page_id = ?1 ORDER BY order_key"
         ))?;

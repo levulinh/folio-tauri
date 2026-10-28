@@ -4,7 +4,7 @@ import { createFakeBackend } from "../backend/fakeBackend";
 const fake = createFakeBackend();
 vi.mock("../backend", () => ({ backend: fake }));
 
-const { createAndOpenPage } = await import("./pageActions");
+const { createAndOpenPage, openPage } = await import("./pageActions");
 const { usePageStore } = await import("./pageStore");
 const { usePagesStore } = await import("./pagesStore");
 const { useUiStore } = await import("./uiStore");
@@ -50,5 +50,21 @@ describe("createAndOpenPage title focus request", () => {
     expect(await createAndOpenPage()).toBeNull();
     expect(useUiStore.getState().titleFocusPageId).toBeNull();
     spy.mockRestore();
+  });
+});
+
+describe("openPage of a page that vanished", () => {
+  it("toasts, keeps the current page (no blank pane) and refreshes the sidebar list", async () => {
+    const keep = (await fake.pageCreate()).page;
+    const gone = (await fake.pageCreate()).page;
+    await usePagesStore.getState().load();
+    await usePageStore.getState().open(keep.id);
+    await fake.pageDelete(gone.id);
+    useUiStore.setState({ toasts: [] });
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    openPage(gone.id);
+    await vi.waitFor(() => expect(useUiStore.getState().toasts).toHaveLength(1));
+    expect(usePageStore.getState().pageId).toBe(keep.id);
+    await vi.waitFor(() => expect(usePagesStore.getState().pages.some((p) => p.id === gone.id)).toBe(false));
   });
 });

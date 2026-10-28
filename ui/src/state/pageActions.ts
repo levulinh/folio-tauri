@@ -1,3 +1,4 @@
+import { isErrorPayload } from "../backend/Backend";
 import { useExpandedStore } from "../sidebar/expanded";
 import { usePageStore } from "./pageStore";
 import { usePagesStore } from "./pagesStore";
@@ -20,6 +21,13 @@ export async function createAndOpenPage(parentId?: string): Promise<string | nul
   }
 }
 
+/** Opens a page; a failure becomes a toast. A vanished page (not_found) is also dropped from the sidebar list. */
 export function openPage(id: string): void {
-  usePageStore.getState().open(id).catch(reportError);
+  usePageStore
+    .getState()
+    .open(id)
+    .catch((e: unknown) => {
+      reportError(e);
+      if (isErrorPayload(e) && e.code === "not_found") usePagesStore.getState().load().catch(reportError);
+    });
 }

@@ -37,6 +37,16 @@ fn create_top_level_page_has_one_tab() {
 }
 
 #[test]
+fn list_tabs_of_unknown_page_is_not_found() {
+    let store = Store::open_in_memory().unwrap();
+    let err = store.list_tabs("nope").unwrap_err();
+    assert!(
+        matches!(&err, CoreError::NotFound { entity: "page", id } if id == "nope"),
+        "{err:?}"
+    );
+}
+
+#[test]
 fn pages_order_after() {
     let mut store = Store::open_in_memory().unwrap();
     let a = page(&mut store, None, None, "A");
