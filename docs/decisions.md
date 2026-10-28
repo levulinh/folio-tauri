@@ -23,5 +23,6 @@ Status: decided (2026-10-28)
 
 ## D-004 Order key format (Phase 1 Task 3)
 Status: decided (2026-10-28)
-- Keys are `FractionalIndex::to_string()` (lowercase hex of its bytes, so byte order is preserved); the `byte_order_matches_rust_string_order` test confirmed no extra encoding is needed.
-- `key_between` rejects `prev >= next` (including equal keys) and unparsable keys with `CoreError::InvalidOp { index: 0, .. }`.
+- The `fractional_index` crate was dropped: v2.0.2 underflows in `new_between` (`right[i] - 1` on a 0x00 byte; repro: 300 prepends, then between two smallest keys), which panics in debug and returns an out-of-bounds key in release. Keys are now generated in `order.rs`, a port of rocicorp's MIT `fractional-indexing` (`generateKeyBetween`).
+- Format: base-62 digits `0-9A-Za-z` (ASCII order, so BINARY collation = Rust `str` order). Integer part with a length-encoding head char (`a`-`z` / `A`-`Z`) plus digits, then a fractional part that never ends in `0`. The smallest integer key `A` + 26 zeros is rejected.
+- `key_between` rejects `prev >= next` ("order keys out of order") and malformed keys with `CoreError::InvalidOp { index: 0, .. }`, and finally checks the result is strictly between the bounds; it never panics.
