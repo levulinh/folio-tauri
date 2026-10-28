@@ -15,12 +15,16 @@ export function App() {
   const empty = usePagesStore((s) => s.pages.length === 0);
 
   useEffect(() => {
-    usePagesStore.getState().load().catch(reportError);
+    usePagesStore
+      .getState()
+      .load()
+      .catch(reportError)
+      .finally(() => usePagesStore.setState({ loaded: true }));
     const offs = [
       backend.onMenu("new-page", () => void createAndOpenPage()),
       backend.onMenu("new-subpage", () => {
         const current = usePageStore.getState().pageId;
-        void createAndOpenPage(current ?? undefined);
+        if (current !== null) void createAndOpenPage(current);
       }),
     ];
     return () => offs.forEach((off) => off());

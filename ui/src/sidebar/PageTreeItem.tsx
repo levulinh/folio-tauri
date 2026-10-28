@@ -27,7 +27,6 @@ export function PageTreeItem({ page, depth, expanded, setExpanded, onRequestDele
   const isOpen = expanded.has(page.id);
 
   const addChild = async () => {
-    setExpanded(page.id, true);
     await createAndOpenPage(page.id);
   };
 
@@ -91,6 +90,7 @@ export function PageTreeItem({ page, depth, expanded, setExpanded, onRequestDele
               aria-haspopup="menu"
               aria-expanded={menuOpen}
               data-testid="tree-item-menu"
+              data-menu-trigger
               onClick={() => setMenuOpen((v) => !v)}
             >
               ⋯
@@ -138,9 +138,9 @@ function RenameInput({ page, onDone }: { page: PageMeta; onDone(): void }) {
     if (finished.current) return;
     finished.current = true;
     onDone();
-    const title = value.trim();
-    if (commit && title !== page.title) {
-      usePagesStore.getState().rename(page.id, title).catch(reportError);
+    // Titles are stored exactly as typed (no trimming).
+    if (commit && value !== page.title) {
+      usePagesStore.getState().rename(page.id, value).catch(reportError);
     }
   };
   return (

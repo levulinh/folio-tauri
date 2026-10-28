@@ -80,7 +80,8 @@ Status: decided (2026-10-28)
 Status: decided (2026-10-28)
 - Extra copy keys not in §5.13's table, needed by the shell: `pagesSection` "Trang", `cancel` "Huỷ" (delete dialog), `moreActions` "Tuỳ chọn" (aria/title of the `⋯` button), `expand`/`collapse` "Mở rộng"/"Thu gọn" (disclosure aria-labels).
 - Creating a page (sidebar button, `+`, menu, native menu event) always opens it; creating a subpage expands its parent. The native `new-page` / `new-subpage` menu events are wired in `App` (subpage under the open page, else top level).
-- Inline rename trims the text; an unchanged title makes no backend call; an empty title is allowed (shows the greyed `untitled`). Enter and blur commit, Escape cancels.
+- Inline rename stores the title exactly as typed (no trimming; "   " and " a " round-trip); a title equal to the stored one makes no backend call; only the empty string shows the greyed `untitled`. Enter and blur commit, Escape cancels.
+- Native `new-subpage` does nothing when no page is open. If `load()` fails the shell still renders (toast shown).
 - The delete dialog focuses Cancel (destructive action is never the default) and closes on Escape or backdrop click. If the open page (or an ancestor) is deleted the page view closes.
 - Page list refresh after `create` re-lists from the backend so order always comes from the backend's `orderKey`; `childrenOf` sorts by `orderKey`, then id.
 - Playwright runs a single `webkit` project (the app runs in WKWebView); `npx playwright install webkit` inside `ui/` is a one-time setup step.

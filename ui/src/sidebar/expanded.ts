@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { create } from "zustand";
 
 const KEY = "folio.tree.expanded";
 
@@ -19,18 +19,21 @@ function write(ids: ReadonlySet<string>): void {
   }
 }
 
-/** Which tree nodes are expanded, persisted in `localStorage["folio.tree.expanded"]`. */
-export function useExpanded() {
-  const [expanded, setExpanded] = useState<ReadonlySet<string>>(read);
-  const set = useCallback((id: string, open: boolean) => {
-    setExpanded((prev) => {
-      if (prev.has(id) === open) return prev;
-      const next = new Set(prev);
-      if (open) next.add(id);
-      else next.delete(id);
-      write(next);
-      return next;
-    });
-  }, []);
-  return { expanded, set };
+interface ExpandedState {
+  expanded: ReadonlySet<string>;
+  set(id: string, open: boolean): void;
 }
+
+/** Which tree nodes are expanded, persisted in `localStorage["folio.tree.expanded"]`. */
+export const useExpandedStore = create<ExpandedState>((setState, get) => ({
+  expanded: read(),
+  set(id, open) {
+    const prev = get().expanded;
+    if (prev.has(id) === open) return;
+    const next = new Set(prev);
+    if (open) next.add(id);
+    else next.delete(id);
+    write(next);
+    setState({ expanded: next });
+  },
+}));

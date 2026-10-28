@@ -5,13 +5,14 @@ import { usePageStore } from "../state/pageStore";
 import { usePagesStore } from "../state/pagesStore";
 import { reportError } from "../state/uiStore";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
-import { useExpanded } from "./expanded";
+import { useExpandedStore } from "./expanded";
 import { PageTreeItem } from "./PageTreeItem";
 import styles from "./PageTree.module.css";
 
 export function PageTree() {
   const pages = usePagesStore((s) => s.pages);
-  const { expanded, set } = useExpanded();
+  const expanded = useExpandedStore((s) => s.expanded);
+  const set = useExpandedStore((s) => s.set);
   const [doomed, setDoomed] = useState<PageMeta | null>(null);
   const roots = usePagesStore.getState().childrenOf(null);
 

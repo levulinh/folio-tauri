@@ -16,7 +16,10 @@ export function Menu({ items, onClose }: { items: MenuItem[]; onClose(): void })
       if (e.key === "Escape") onClose();
     };
     const onDown = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+      const target = e.target as Element;
+      // The trigger's own click toggles the menu, so don't also close it here.
+      if (target.closest?.("[data-menu-trigger]")) return;
+      if (ref.current && !ref.current.contains(target)) onClose();
     };
     document.addEventListener("keydown", onKey);
     document.addEventListener("mousedown", onDown);
