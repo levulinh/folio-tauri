@@ -36,7 +36,11 @@ export function ToolbarVisibilitySync() {
       return `${from}-${to}`;
     };
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && store.state) dismissedFor = selectionKey();
+      if (e.key !== "Escape" || !store.state) return;
+      if (e.isComposing || e.keyCode === 229) return; // Escape only cancels an IME composition
+      const target = e.target;
+      if (!(target instanceof Node) || !editor.prosemirrorView?.dom.contains(target)) return; // link popover, find bar...
+      dismissedFor = selectionKey();
     };
     document.addEventListener("keydown", onKeyDown, { capture: true });
     const sync = () => {
@@ -46,9 +50,12 @@ export function ToolbarVisibilitySync() {
       const want = shouldShowToolbar(editor);
       if (want !== store.state) store.setState(want);
     };
-    const offChange = editor.onChange(sync);
+    const offChange = editor.onChange(() => {
+      dismissedFor = null; // an edit makes any earlier dismissal stale
+      sync();
+    });
     const offSelection = editor.onSelectionChange(sync);
-    const offFocus = editor.onFocusChange(sync);
+    const offFocus = editor.onFocusChange(sync, { includeEditorUI: true });
 
     let detachDom: (() => void) | undefined;
     const attachDom = () => {
@@ -59,6 +66,7 @@ export function ToolbarVisibilitySync() {
       };
       const onUp = () => {
         pointerDown = false;
+        dismissedFor = null; // selecting the same range again by mouse reopens the toolbar
         sync();
       };
       view.dom.addEventListener("pointerdown", onDown);

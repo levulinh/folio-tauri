@@ -142,3 +142,32 @@ test("link button opens the link popover and the toolbar does not fight it", asy
   await field.press("Enter");
   await expect(firstLine(page).locator("a")).toHaveText("chào");
 });
+
+test("escape that only cancels a composition does not dismiss the toolbar", async ({ page }) => {
+  // A mixed paragraph + code selection is opened by ToolbarVisibilitySync alone (BlockNote never opens it).
+  await firstLine(page).click();
+  await page.keyboard.type("đoạn văn");
+  await page.keyboard.press("Enter");
+  await page.keyboard.type("``` ");
+  await page.keyboard.type("let x = 1");
+  await page.keyboard.press("Shift+ArrowUp");
+  await page.keyboard.press("Shift+Home");
+  await expect(toolbar(page)).toBeVisible();
+  await page.evaluate(() => {
+    const dom = document.querySelector(".bn-editor")!;
+    dom.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", isComposing: true, bubbles: true }));
+  });
+  // Close and reopen it through focus: a wrongly recorded dismissal would keep it closed.
+  await page.evaluate(() => (document.activeElement as HTMLElement).blur());
+  await expect(toolbar(page)).toHaveCount(0);
+  await page.evaluate(() => (document.querySelector(".bn-editor") as HTMLElement).focus());
+  await expect(toolbar(page)).toBeVisible();
+});
+
+test("selecting the same word again after escape reopens the toolbar", async ({ page }) => {
+  await typeAndSelect(page, "xin chào", "chào");
+  await page.keyboard.press("Escape");
+  await expect(toolbar(page)).toHaveCount(0);
+  await firstLine(page).getByText("chào", { exact: false }).dblclick();
+  await expect(toolbar(page)).toBeVisible();
+});
