@@ -1,0 +1,47 @@
+import { useState, type RefObject } from "react";
+import { vi } from "../i18n/vi";
+import styles from "./SearchBox.module.css";
+
+interface Props {
+  query: string;
+  onQueryChange(query: string): void;
+  onEnter(): void;
+  inputRef: RefObject<HTMLInputElement | null>;
+}
+
+/** Search input. Never reports a query or reacts to Enter while an IME composition is active. */
+export function SearchBox({ query, onQueryChange, onEnter, inputRef }: Props) {
+  const [text, setText] = useState(query);
+  const [composing, setComposing] = useState(false);
+
+  return (
+    <input
+      ref={inputRef}
+      className={styles.box}
+      data-testid="search-input"
+      type="text"
+      value={text}
+      placeholder={vi.searchPlaceholder}
+      onChange={(e) => {
+        setText(e.target.value);
+        if (!composing && !(e.nativeEvent as InputEvent).isComposing) onQueryChange(e.target.value);
+      }}
+      onCompositionStart={() => setComposing(true)}
+      onCompositionEnd={(e) => {
+        setComposing(false);
+        onQueryChange(e.currentTarget.value);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          setText("");
+          onQueryChange("");
+          return;
+        }
+        // WebKit sends the composition-commit Enter after compositionend with keyCode 229.
+        if (e.key !== "Enter" || composing || e.nativeEvent.isComposing || e.keyCode === 229) return;
+        e.preventDefault();
+        onEnter();
+      }}
+    />
+  );
+}

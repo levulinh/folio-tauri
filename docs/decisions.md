@@ -111,3 +111,10 @@ Status: decided (2026-10-28)
 - The status shown by `SaveStatus` lives in `pageStore.saveStatus` (set by the mounted editor's pipeline). The `open()` race fix: the `latestOpen` ticket is taken before the same-page early return, so clicking the still-current page cancels an in-flight open of another page (last click wins).
 - Headless tests: `BlockNoteEditor.create` in jsdom fires `onChange` for API edits (`updateBlock`, `insertBlocks`, `removeBlocks`, `unnestBlock`, `moveBlocksUp`); only the undo test needs `editor.mount(document.createElement("div"))` (undo needs a view). `onChange` is registered with `includeUpdatesFromRemote = false` as well as the source check.
 - WebKit: `Home` scrolls the page on macOS, so e2e uses `Meta+ArrowLeft` to reach the start of a line. All §A3 shortcuts and Enter/Backspace rules behave as specified in BlockNote 0.56; no `test.fixme` needed.
+
+## D-015 Sidebar search (Phase 1 Task 15)
+Status: decided (2026-10-28)
+- Query state lives in `Sidebar`; `SearchBox` keeps its own input text and reports the query only when not composing (IME): nothing is searched mid-composition, the final text is reported on `compositionend`, and Enter is ignored while composing or when `keyCode === 229` (same rule as `PageTitle`). Enter opens the first result.
+- `useSearchResults` debounces 200 ms and uses a request counter: a response is applied only if no newer query (or clear) started since; stale responses and their errors are dropped.
+- Escape clears the query and returns to the tree. Clicking a result opens the page and KEEPS the query and results, so the user can click through several results (selected result is highlighted).
+- Snippets are plain text (React text node), clamped to 2 lines by CSS. `menu:search` focuses the box (no select-all). A whitespace-only query counts as empty (tree shown).

@@ -1,0 +1,19 @@
+.box {
+  flex: none;
+  margin: 4px 8px 8px;
+  padding: 6px 8px;
+  font-size: 14px;
+  color: var(--text);
+  background: var(--bg-hover);
+  border: 1px solid transparent;
+  border-radius: 4px;
+  outline: none;
+}
+
+.box:focus {
+  border-color: var(--border);
+}
+
+.box::placeholder {
+  color: var(--text-muted);
+}
