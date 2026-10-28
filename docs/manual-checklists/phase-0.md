@@ -1,6 +1,7 @@
 # Giai đoạn 0 — Kiểm tra gõ tiếng Việt
 
 Chạy: `cd spikes/ime && npm install && npm run tauri dev`
+> Ghi chú: app thử đã bị xoá ở commit 8c7c5f9. Muốn chạy lại: `git checkout c9364c4 -- spikes/`.
 
 Câu thử: `Tiếng Việt có dấu: Đà Nẵng, Huế, người, được, ở`
 
