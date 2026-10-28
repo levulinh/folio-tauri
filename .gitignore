@@ -2,3 +2,9 @@ node_modules/
 target/
 dist/
 .DS_Store
+ui/test-results
+ui/playwright-report
+gen/schemas
+*.local
+crates/folio-app/gen/schemas
+*.tsbuildinfo

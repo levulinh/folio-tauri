@@ -1,0 +1,10 @@
+{
+  "name": "folio",
+  "private": true,
+  "workspaces": ["ui"],
+  "scripts": {
+    "dev": "npm run -w ui tauri -- dev",
+    "build": "npm run -w ui tauri -- build",
+    "check": "bash scripts/check.sh"
+  }
+}
