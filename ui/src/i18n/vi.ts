@@ -19,6 +19,19 @@ export const vi = {
   findNext: "Kết quả sau",
   findPrev: "Kết quả trước",
   findClose: "Đóng",
+  // Slash-menu item labels stay English (tech spec §5.7, block-controls design A6).
+  slashMenu: {
+    text: "Text",
+    heading1: "Heading 1",
+    heading2: "Heading 2",
+    heading3: "Heading 3",
+    bulletedList: "Bulleted list",
+    numberedList: "Numbered list",
+    todoList: "To-do list",
+    quote: "Quote",
+    code: "Code",
+    table: "Table",
+  },
   errors: {
     not_found: "Không tìm thấy mục này",
     invalid_op: "Thao tác không hợp lệ",

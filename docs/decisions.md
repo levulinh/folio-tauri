@@ -154,3 +154,11 @@ BlockNote 0.56's `FormattingToolbarController` takes no show condition; its exte
 - BlockNote's toolbar components forward no props, so `data-testid`s (`fmt-toolbar`, `fmt-bold` ... `fmt-link`) are set on their DOM nodes in an effect.
 - The composing test forces `view.composing` by defining a getter on the view instance (jsdom cannot start a real composition) and removes it afterwards.
 Status: accepted.
+
+## D-022 Slash menu: own items, own composing guard, code blocks suppressed by BlockNote (Phase 2 Task 3)
+`slashMenu={false}` + `SuggestionMenuController triggerCharacter="/"` with `getItems = filterSlashItems(slashItems(editor), query)` (`ui/src/editor/slashMenu.ts`; BlockNote's `filterSuggestionItems` and default items are unused). Items apply through `insertOrUpdateBlockForSlashMenu`: the current block is converted when empty (or only the typed `/`), else the new block goes below. Table uses BlockNote's own default shape, 2 rows x 3 columns (the "3x2" of the plan), header row per block default.
+- Test ids: BlockNote's Mantine menu primitives reject extra props, so `SlashMenuComponent` renders them and wraps the list in `div[data-testid=slash-menu]` and each item in `div[data-testid=slash-item][data-key]` (no styling on the wrappers).
+- IME: BlockNote's suggestion plugin opens from `handleTextInput` without checking `view.composing`. `slashComposingGuard` (extension, `runsBefore: ["suggestionMenu"]`) has a plugin whose `handleTextInput` inserts text containing `/` itself and reports it handled while `view.composing`, so the suggestion plugin never sees it. The Vitest test fails without the guard. The WebKit e2e composing test (`compositionstart` + typed `/`) passes with or without it, because synthetic typing does not reach `handleTextInput` as a composition; it is a smoke check only.
+- Code blocks: no guard needed. BlockNote's suggestion plugin `apply` ignores transactions whose selection parent has `spec.code`, so the menu never opens in a code block (e2e asserts it).
+- The English `slash_menu` entry in `dictionary.ts` stays (BlockNote's default items, if ever rendered, stay English); Folio's labels live in `vi.slashMenu`.
+Status: accepted.

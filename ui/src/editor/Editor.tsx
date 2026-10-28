@@ -1,5 +1,10 @@
 import { BlockNoteView } from "@blocknote/mantine";
-import { FormattingToolbarController, useCreateBlockNote } from "@blocknote/react";
+import {
+  FormattingToolbarController,
+  SuggestionMenuController,
+  useCreateBlockNote,
+  type DefaultReactSuggestionItem,
+} from "@blocknote/react";
 import type { PartialBlock } from "@blocknote/core";
 import { useEffect, useState } from "react";
 import { backend } from "../backend";
@@ -11,6 +16,9 @@ import { toEditorBlocks } from "./convert";
 import { dictionary } from "./dictionary";
 import { findExtension } from "./find/findPlugin";
 import { schema } from "./schema";
+import { SlashMenuComponent } from "./SlashMenuComponent";
+import { slashComposingGuard } from "./slashComposingGuard";
+import { filterSlashItems, slashItems } from "./slashMenu";
 import { ToolbarVisibilitySync } from "./toolbar/ToolbarVisibilitySync";
 import { FolioFormattingToolbar } from "./toolbar/FolioFormattingToolbar";
 import "./editor.css";
@@ -45,7 +53,7 @@ function EditorInstance({ loaded }: { loaded: Loaded }) {
     initialContent: initial as never,
     trailingBlock: true,
     animations: false,
-    extensions: [findExtension()],
+    extensions: [findExtension(), slashComposingGuard()],
   });
   const setActiveEditor = usePageStore((s) => s.setActiveEditor);
   useEffect(() => {
@@ -66,9 +74,15 @@ function EditorInstance({ loaded }: { loaded: Loaded }) {
     };
   }, [tabId, editor, storedIds, setSaveStatus]);
   return (
-    <BlockNoteView editor={editor} theme={colorScheme} formattingToolbar={false} data-testid="editor">
+    <BlockNoteView editor={editor} theme={colorScheme} formattingToolbar={false} slashMenu={false} data-testid="editor">
       <ToolbarVisibilitySync />
       <FormattingToolbarController formattingToolbar={FolioFormattingToolbar} />
+      <SuggestionMenuController
+        triggerCharacter="/"
+        getItems={async (query): Promise<DefaultReactSuggestionItem[]> => filterSlashItems(slashItems(editor), query)}
+        suggestionMenuComponent={SlashMenuComponent}
+        onItemClick={(item) => item.onItemClick()}
+      />
     </BlockNoteView>
   );
 }
