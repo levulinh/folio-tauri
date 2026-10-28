@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { SAVE_DEBOUNCE_MS } from "../src/editor/saveTiming";
 
 test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 1400, height: 900 });
@@ -103,8 +104,11 @@ test("plus inserts a text block below and opens the slash menu", async ({ page }
   await add(page).click();
   await expect(outer(page)).toHaveCount(before + 1);
   await expect(page.getByTestId("slash-menu")).toBeVisible();
+  await page.keyboard.press("Escape");
   await page.keyboard.type("Đây");
-  await expect(editorOf(page).locator(".bn-inline-content").nth(1)).toContainText("Đây");
+  // The caret is in the new block, the second one.
+  await expect(editorOf(page).locator(".bn-inline-content").nth(1)).toHaveText("Đây");
+  await expect(firstLine(page)).toHaveText("Một");
 });
 
 test("plus on an empty block reuses it", async ({ page }) => {
@@ -184,7 +188,7 @@ test("drop onto itself does nothing", async ({ page }) => {
   await page.mouse.down();
   await page.mouse.move(self.x + 40, self.y + self.height / 2, { steps: 8 });
   await page.mouse.up();
-  await page.waitForTimeout(1200); // longer than the save debounce
+  await page.waitForTimeout(SAVE_DEBOUNCE_MS * 2); // well past the save debounce
   await expect.poll(() => outline(page)).toEqual(["A", "B", "  B1", "C"]);
   expect(await saves(page)).toBe(0);
   await saved(page);
@@ -201,7 +205,7 @@ test("escape cancels a drag", async ({ page }) => {
   await page.mouse.move(dest.x + 40, dest.y + dest.height - 2, { steps: 10 });
   await page.keyboard.press("Escape");
   await page.mouse.up();
-  await page.waitForTimeout(1200); // longer than the save debounce
+  await page.waitForTimeout(SAVE_DEBOUNCE_MS * 2); // well past the save debounce
   await expect.poll(() => outline(page)).toEqual(["A", "B", "  B1", "C"]);
   expect(await saves(page)).toBe(0);
   await saved(page);

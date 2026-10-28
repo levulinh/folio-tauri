@@ -1,4 +1,4 @@
-import type { BlockNoteEditor } from "@blocknote/core";
+import type { FolioEditor } from "../schema";
 import { useEffect } from "react";
 
 /**
@@ -6,14 +6,18 @@ import { useEffect } from "react";
  * a following ⌘Z would reach the webview's native undo instead of the editor's history. Give the
  * focus back once BlockNote has handled a drop inside the editor.
  */
-export function useFocusAfterDrop(editor: BlockNoteEditor<never, never, never>): void {
+export function useFocusAfterDrop(editor: FolioEditor): void {
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
     const onDrop = (e: DragEvent) => {
       const dom = editor.prosemirrorView?.dom;
       if (!dom || !(e.target instanceof Node) || !dom.contains(e.target)) return;
-      setTimeout(() => editor.focus(), 0); // after BlockNote's own drop handler
+      timer = setTimeout(() => editor.focus(), 0); // after BlockNote's own drop handler
     };
     document.addEventListener("drop", onDrop);
-    return () => document.removeEventListener("drop", onDrop);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("drop", onDrop);
+    };
   }, [editor]);
 }

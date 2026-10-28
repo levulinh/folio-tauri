@@ -1,5 +1,6 @@
 import type { Backend } from "../backend/Backend";
 import { isErrorPayload } from "../backend/Backend";
+import { SAVE_DEBOUNCE_MS } from "./saveTiming";
 import type { BlockNode } from "../backend/generated/BlockNode";
 import type { BlockOp } from "../backend/generated/BlockOp";
 import { vi } from "../i18n/vi";
@@ -107,7 +108,7 @@ const logError = (e: unknown) => console.error("save pipeline error", e);
 
 export function createSavePipeline(o: SavePipelineOptions): SavePipeline {
   const onError = o.onError ?? logError;
-  const debounceMs = o.debounceMs ?? 600;
+  const debounceMs = o.debounceMs ?? SAVE_DEBOUNCE_MS;
   const maxWaitMs = o.maxWaitMs ?? 3000;
   const retryBaseMs = o.retryBaseMs ?? 2000;
   const retryMaxMs = o.retryMaxMs ?? 30000;

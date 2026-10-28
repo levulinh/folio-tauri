@@ -16,6 +16,7 @@ import { reportError } from "../state/uiStore";
 import { getPipeline, pendingDocumentFor } from "./pipelineRegistry";
 import { toEditorBlocks } from "./convert";
 import { dictionary } from "./dictionary";
+import { installNativeHistoryGuard } from "./nativeHistoryGuard";
 import { findExtension } from "./find/findPlugin";
 import { schema } from "./schema";
 import { FolioSideMenu } from "./sideMenu/FolioSideMenu";
@@ -63,7 +64,8 @@ function EditorInstance({ loaded }: { loaded: Loaded }) {
     animations: false,
     extensions: [findExtension(), slashComposingGuard()],
   });
-  useFocusAfterDrop(editor as never);
+  useEffect(installNativeHistoryGuard, []);
+  useFocusAfterDrop(editor);
   const getSlashItems = useCallback(
     async (query: string): Promise<DefaultReactSuggestionItem[]> => filterSlashItems(slashItems(editor), query),
     [editor],
