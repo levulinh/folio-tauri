@@ -220,3 +220,9 @@ Status: accepted.
 - Moving to a non-last cell keeps BlockNote's behaviour (the target cell's whole content is selected); a newly added row's cell is empty, so the caret is simply placed in it.
 - **Selection stays in the cell (Task 3 fix):** in WebKit Shift-Home / Shift-End inside a cell extended the selection across the neighbouring cells (one ⌘B then bolded all of them). `tableKeysExtension` now handles Shift-Home, Shift-End and, for the macOS line selection, Meta-Shift-ArrowLeft / ArrowRight: for a text selection whose anchor and head are in the same cell it extends the head to the start or end of the cell's text and returns `true`; while composing it swallows the key; otherwise (outside a table, anchor in another cell, cell selection) it returns `false`. Meta (not Mod) is bound so Ctrl-Shift-Arrow word selection on Windows/Linux is untouched.
 Status: accepted.
+
+## D-031 Store opening is race-safe and refuses newer schemas (Phase 3 Task 6a)
+- `busy_timeout` is set before `journal_mode=WAL`. Switching a fresh file to WAL returns SQLITE_BUSY immediately (the busy handler is not consulted) when another connection is switching it too, so `enable_wal` retries for a bounded time (100 x 20 ms).
+- Migrations run in one `BEGIN IMMEDIATE` transaction that also reads `user_version`: a second opener waits for the write lock, then sees the finished schema and migrates nothing.
+- `user_version` greater than `MIGRATIONS.len()` fails with `CoreError::SchemaTooNew { found, known }` (code `"db"`, no new code) and leaves the file untouched; the shell's existing open error prefixes the db path. `db::MIGRATIONS` is `pub` so tests compare against the real count.
+Status: accepted.

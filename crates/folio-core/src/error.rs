@@ -15,6 +15,8 @@ pub enum CoreError {
     EmptyComment,
     #[error("database error: {0}")]
     Db(#[from] rusqlite::Error),
+    #[error("database schema version {found} is newer than this app understands ({known}); update Folio")]
+    SchemaTooNew { found: i64, known: i64 },
     #[error("io error: {0}")]
     Io(#[from] std::io::Error),
     #[error("json error: {0}")]
@@ -36,7 +38,7 @@ impl CoreError {
             CoreError::InvalidOp { .. } => "invalid_op",
             CoreError::LastTab => "last_tab",
             CoreError::EmptyComment => "empty_comment",
-            CoreError::Db(_) => "db",
+            CoreError::Db(_) | CoreError::SchemaTooNew { .. } => "db",
             CoreError::Io(_) => "io",
             CoreError::Json(_) => "json",
         }

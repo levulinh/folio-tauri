@@ -1,14 +1,17 @@
 use std::path::{Path, PathBuf};
 
-use rusqlite::Connection;
+use rusqlite::{Connection, TransactionBehavior};
 
-use crate::error::Result;
+use crate::error::{CoreError, Result};
 
 /// Forward-only migrations; migration `n` (1-based) sets `user_version = n`.
-const MIGRATIONS: &[&str] = &[
+pub const MIGRATIONS: &[&str] = &[
     include_str!("migrations/0001_init.sql"),
     include_str!("migrations/0002_search_owner.sql"),
 ];
+
+const WAL_RETRIES: u32 = 100;
+const WAL_RETRY_PAUSE_MS: u64 = 20;
 
 pub struct Store {
     conn: Connection,
@@ -60,21 +63,49 @@ impl Store {
 }
 
 fn configure(conn: &Connection) -> Result<()> {
-    // journal_mode returns a row, so it must be read as a query.
-    conn.query_row("PRAGMA journal_mode=WAL", [], |_| Ok(()))?;
-    conn.execute_batch(
-        "PRAGMA foreign_keys=ON; PRAGMA synchronous=NORMAL; PRAGMA busy_timeout=5000;",
-    )?;
+    // busy_timeout first: switching to WAL needs a lock another opener may hold.
+    conn.execute_batch("PRAGMA busy_timeout=5000;")?;
+    enable_wal(conn)?;
+    conn.execute_batch("PRAGMA foreign_keys=ON; PRAGMA synchronous=NORMAL;")?;
     Ok(())
 }
 
+/// The journal-mode switch returns SQLITE_BUSY at once (the busy handler is not
+/// consulted) while another connection is switching the same fresh file, so it is
+/// retried for a bounded time.
+fn enable_wal(conn: &Connection) -> Result<()> {
+    let mut attempts = 0;
+    loop {
+        // journal_mode returns a row, so it must be read as a query.
+        match conn.query_row("PRAGMA journal_mode=WAL", [], |_| Ok(())) {
+            Ok(()) => return Ok(()),
+            Err(rusqlite::Error::SqliteFailure(e, _))
+                if e.code == rusqlite::ErrorCode::DatabaseBusy && attempts < WAL_RETRIES =>
+            {
+                attempts += 1;
+                std::thread::sleep(std::time::Duration::from_millis(WAL_RETRY_PAUSE_MS));
+            }
+            Err(e) => return Err(e.into()),
+        }
+    }
+}
+
 fn migrate(conn: &mut Connection) -> Result<()> {
-    let version: i64 = conn.query_row("PRAGMA user_version", [], |r| r.get(0))?;
+    // IMMEDIATE takes the write lock before `user_version` is read, so a second
+    // opener waits (busy_timeout) and then sees the finished schema.
+    let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
+    let version: i64 = tx.query_row("PRAGMA user_version", [], |r| r.get(0))?;
+    let known = MIGRATIONS.len() as i64;
+    if version > known {
+        return Err(CoreError::SchemaTooNew {
+            found: version,
+            known,
+        });
+    }
     for (index, sql) in MIGRATIONS.iter().enumerate().skip(version as usize) {
-        let tx = conn.transaction()?;
         tx.execute_batch(sql)?;
         tx.execute_batch(&format!("PRAGMA user_version = {}", index + 1))?;
-        tx.commit()?;
     }
+    tx.commit()?;
     Ok(())
 }
