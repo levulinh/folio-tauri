@@ -56,3 +56,19 @@ test("side menu fits in the gutter", async ({ page }) => {
   expect(box.x).toBeGreaterThanOrEqual((await mainBox(page)).x);
   expect(box.x + box.width).toBeLessThanOrEqual(text.x);
 });
+
+for (const scheme of ["light", "dark"] as const) {
+  test(`title input shows a visible focus indicator (${scheme})`, async ({ page }) => {
+    await page.emulateMedia({ colorScheme: scheme });
+    const title = page.getByTestId("page-title");
+    await page.locator("aside").click({ position: { x: 5, y: 400 } }); // title not focused
+    await expect(title).not.toBeFocused();
+    const ring = () => title.evaluate((el) => getComputedStyle(el).boxShadow);
+    const idle = await ring();
+    await title.focus();
+    await expect(title).toBeFocused();
+    const focused = await ring();
+    expect(focused).not.toBe(idle);
+    expect(focused).not.toBe("none");
+  });
+}
