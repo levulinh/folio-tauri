@@ -4,6 +4,7 @@ import { EmptyState } from "./page/EmptyState";
 import { PageView } from "./page/PageView";
 import { Sidebar } from "./sidebar/Sidebar";
 import { createAndOpenPage } from "./state/pageActions";
+import { flushForQuit } from "./state/quitFlush";
 import { usePageStore } from "./state/pageStore";
 import { usePagesStore } from "./state/pagesStore";
 import { reportError } from "./state/uiStore";
@@ -26,6 +27,7 @@ export function App() {
         const current = usePageStore.getState().pageId;
         if (current !== null) void createAndOpenPage(current);
       }),
+      backend.onFlushRequest(flushForQuit),
     ];
     return () => offs.forEach((off) => off());
   }, []);

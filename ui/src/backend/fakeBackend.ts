@@ -15,7 +15,11 @@ interface State {
 
 const EMPTY: State = { pages: [], tabs: [], blocks: {} };
 
-export type FakeBackend = Backend & { emitMenu(name: MenuEvent): void };
+export type FakeBackend = Backend & {
+  emitMenu(name: MenuEvent): void;
+  /** Simulates the shell's `flush-request`; resolves when every subscriber has finished. */
+  emitFlushRequest(): Promise<void>;
+};
 
 function load(key: string | undefined): State {
   if (!key) return EMPTY;
@@ -61,6 +65,7 @@ function descendantIds(pages: readonly PageMeta[], root: string): Set<string> {
 export function createFakeBackend(opts: { persistKey?: string } = {}): FakeBackend {
   let state = load(opts.persistKey);
   const menuListeners = new Map<MenuEvent, Set<() => void>>();
+  const flushListeners = new Set<() => Promise<void>>();
 
   const commit = (next: State) => {
     state = next;
@@ -173,7 +178,13 @@ export function createFakeBackend(opts: { persistKey?: string } = {}): FakeBacke
     emitMenu(name) {
       [...(menuListeners.get(name) ?? [])].forEach((cb) => cb());
     },
-    onFlushRequest: () => () => {},
+    onFlushRequest(cb) {
+      flushListeners.add(cb);
+      return () => void flushListeners.delete(cb);
+    },
+    async emitFlushRequest() {
+      await Promise.all([...flushListeners].map((cb) => cb()));
+    },
     async quitReady() {},
   };
 }

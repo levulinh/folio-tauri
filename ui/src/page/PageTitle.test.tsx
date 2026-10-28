@@ -3,6 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { FolioEditor } from "../editor/schema";
 import { usePageStore } from "../state/pageStore";
 import { usePagesStore } from "../state/pagesStore";
+import { flushForQuit } from "../state/quitFlush";
+import { useUiStore } from "../state/uiStore";
 import { PageTitle } from "./PageTitle";
 
 const page = (id: string, title = "") => ({ id, title }) as never;
@@ -83,5 +85,46 @@ describe("PageTitle saving", () => {
     usePagesStore.setState({ pages: [page("p2")] });
     unmount();
     expect(rename).not.toHaveBeenCalled();
+  });
+});
+
+describe("PageTitle quit flush", () => {
+  it("flushForQuit saves a rename that is still inside its debounce and waits for it", async () => {
+    let finish!: () => void;
+    rename.mockImplementationOnce(() => new Promise<void>((r) => (finish = r)));
+    render(<PageTitle pageId="p1" />);
+    type("Đà Nẵng");
+    expect(rename).not.toHaveBeenCalled();
+    let done = false;
+    const flushing = flushForQuit().then(() => (done = true));
+    expect(rename).toHaveBeenCalledExactlyOnceWith("p1", "Đà Nẵng");
+    await Promise.resolve();
+    expect(done).toBe(false);
+    finish();
+    await flushing;
+    expect(done).toBe(true);
+    act(() => void vi.advanceTimersByTime(1000));
+    expect(rename).toHaveBeenCalledTimes(1);
+  });
+
+  it("stops flushing a title once it is unmounted", async () => {
+    const { unmount } = render(<PageTitle pageId="p1" />);
+    unmount();
+    await flushForQuit();
+    expect(rename).not.toHaveBeenCalled();
+  });
+});
+
+describe("PageTitle focus on creation", () => {
+  it("takes focus when the page was just created, once", () => {
+    useUiStore.getState().requestTitleFocus("p1");
+    render(<PageTitle pageId="p1" />);
+    expect(input()).toBe(document.activeElement);
+    expect(useUiStore.getState().titleFocusPageId).toBeNull();
+  });
+
+  it("does not take focus for an ordinarily opened page", () => {
+    render(<PageTitle pageId="p1" />);
+    expect(input()).not.toBe(document.activeElement);
   });
 });

@@ -311,6 +311,21 @@ describe("persistence and events", () => {
     expect(cb).toHaveBeenCalledTimes(1);
   });
 
+  it("emitFlushRequest runs subscribers and waits for them until unsubscribed", async () => {
+    const b = createFakeBackend();
+    let finished = false;
+    const off = b.onFlushRequest(async () => {
+      await Promise.resolve();
+      finished = true;
+    });
+    await b.emitFlushRequest();
+    expect(finished).toBe(true);
+    off();
+    finished = false;
+    await b.emitFlushRequest();
+    expect(finished).toBe(false);
+  });
+
   it("flush request and quitReady are safe in the fake", async () => {
     const b = createFakeBackend();
     const off = b.onFlushRequest(async () => {});

@@ -166,3 +166,57 @@ test("clicking the menu trigger again closes the menu", async ({ page }) => {
   await page.getByTestId("tree-item-menu").click();
   await expect(page.getByTestId("menu-rename")).toHaveCount(0);
 });
+
+test("menu new page creates and focuses title", async ({ page }) => {
+  await createFirst(page);
+  await page.evaluate(() => window.__folioFake!.emitMenu("new-page"));
+  await expect(items(page)).toHaveCount(2);
+  await expect(page.getByTestId("page-title")).toBeFocused();
+  await page.keyboard.type("Trang mới");
+  await expect(page.getByTestId("page-title")).toHaveValue("Trang mới");
+  // a page opened by a click does not steal the caret
+  await items(page).first().click();
+  await expect(page.getByTestId("page-title")).not.toBeFocused();
+});
+
+test("menu new subpage nests under open page", async ({ page }) => {
+  await createFirst(page);
+  const parentId = await items(page).first().getAttribute("data-page-id");
+  await page.evaluate(() => window.__folioFake!.emitMenu("new-subpage"));
+  await expect(items(page)).toHaveCount(2);
+  await expect(page.getByTestId("page-title")).toBeFocused();
+  const pages = await page.evaluate(() => window.__folioFake!.pagesList());
+  const child = pages.find((p) => p.parentId !== null);
+  expect(child?.parentId).toBe(parentId);
+  const titleX = async (i: number) => (await items(page).nth(i).getByTestId("tree-item-title").boundingBox())!.x;
+  expect(await titleX(1)).toBeGreaterThan(await titleX(0));
+});
+
+test("switching pages flushes", async ({ page }) => {
+  await createFirst(page);
+  await page.getByTestId("sidebar-new-page").click();
+  await expect(items(page)).toHaveCount(2);
+  const [a, b] = [items(page).nth(0), items(page).nth(1)];
+  await a.click();
+  await page.getByTestId("editor").locator(".bn-inline-content").first().click();
+  await page.keyboard.type("chưa kịp lưu");
+  await b.click(); // immediately, before the save debounce fires
+  await page.reload();
+  await items(page).nth(0).click();
+  await expect(page.getByTestId("editor")).toContainText("chưa kịp lưu");
+});
+
+test("a quit request flushes unsaved text and a pending title", async ({ page }) => {
+  await createFirst(page);
+  await page.getByTestId("page-title").fill("Đang đổi tên");
+  await page.getByTestId("editor").locator(".bn-inline-content").first().click();
+  await page.keyboard.type("gõ xong thoát");
+  await page.getByTestId("page-title").fill("Tên mới ngay");
+  await page.evaluate(() => window.__folioFake!.emitFlushRequest());
+  const stored = await page.evaluate(() => window.__folioFake!.pagesList().then((l) => l.map((p) => p.title)));
+  expect(stored).toEqual(["Tên mới ngay"]);
+  await page.reload();
+  await expect(page.getByTestId("tree-item-title").first()).toHaveText("Tên mới ngay");
+  await page.getByTestId("tree-item").first().click();
+  await expect(page.getByTestId("editor")).toContainText("gõ xong thoát");
+});

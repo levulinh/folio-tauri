@@ -130,3 +130,9 @@ Status: decided (2026-10-28)
 - The find bar keeps its text across close; closing clears the decorations, reopening (⌘F) re-applies the query and selects the text. Closing focuses the editor. IME: only committed text is searched, Enter during composition (keyCode 229) is ignored. Navigation and query changes scroll the current match to the centre (`domAtPos` + `scrollIntoView`).
 - Added `prosemirror-model/state/view` (exact versions BlockNote already resolves) as direct dependencies of `ui`; new `vi` keys `findNext`, `findPrev`, `findClose` for the bar's button labels.
 - Escape closes the bar from its input (ignored while composing / keyCode 229) and from the editor (document capture-phase listener, only while open and only if no BlockNote suggestion menu is open). The bar resets `findOpen` on unmount.
+
+## D-017 — Quit flush covers pending title renames; new pages focus their title
+Status: decided (2026-10-29)
+- `App` registers `backend.onFlushRequest(flushForQuit)` once (effect cleanup unsubscribes, so StrictMode's double mount leaves one listener). `flushForQuit` (`ui/src/state/quitFlush.ts`) awaits `flushAll()` (every tab pipeline) and every mounted `PageTitle`'s "save pending rename now", which is registered in a small set and removed on unmount. A title still inside its 400 ms debounce is therefore stored before `quit_ready`.
+- A page created from the menu or the sidebar button (`createAndOpenPage`) asks `uiStore.titleFocusPageId` for focus; the matching `PageTitle` takes focus on mount and clears the request. Pages opened by clicking do not steal the caret.
+- The fake backend gained `emitFlushRequest()` (awaits all subscribers) so Playwright can simulate the shell's `flush-request`.

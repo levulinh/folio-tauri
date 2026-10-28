@@ -10,6 +10,10 @@ interface Toast {
 interface UiState {
   findOpen: boolean;
   setFindOpen(v: boolean): void;
+  /** Page whose title input should take focus when it mounts (set right after creating a page). */
+  titleFocusPageId: string | null;
+  requestTitleFocus(pageId: string): void;
+  clearTitleFocus(): void;
   toasts: Toast[];
   toast(text: string): void;
   dismissToast(id: string): void;
@@ -20,6 +24,9 @@ let nextToast = 0;
 export const useUiStore = create<UiState>((set) => ({
   findOpen: false,
   setFindOpen: (findOpen) => set({ findOpen }),
+  titleFocusPageId: null,
+  requestTitleFocus: (titleFocusPageId) => set({ titleFocusPageId }),
+  clearTitleFocus: () => set({ titleFocusPageId: null }),
   toasts: [],
   toast: (text) =>
     set((s) => ({ toasts: [...s.toasts, { id: `toast-${(nextToast += 1)}`, text }] })),
