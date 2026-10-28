@@ -1,5 +1,5 @@
 import { BlockNoteEditor } from "@blocknote/core";
-import { TextSelection } from "prosemirror-state";
+import { AllSelection, TextSelection } from "prosemirror-state";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { schema } from "../schema";
 import { shouldShowToolbar } from "./toolbarVisibility";
@@ -49,6 +49,26 @@ describe("shouldShowToolbar", () => {
   it("shown when the selection spans a paragraph and a code block", () => {
     select(textStart("p") + 2, textStart("c") + 3);
     expect(shouldShowToolbar(editor)).toBe(true);
+  });
+
+  it("boundary-only selection hides the toolbar", () => {
+    editor.replaceBlocks(editor.document, [
+      { id: "e1", type: "paragraph" },
+      { id: "e2", type: "paragraph" },
+    ]);
+    select(textStart("e1"), textStart("e2"));
+    expect(shouldShowToolbar(editor)).toBe(false);
+  });
+
+  it("select-all in an empty doc hides the toolbar", () => {
+    editor.replaceBlocks(editor.document, [{ id: "e1", type: "paragraph" }]);
+    editor.transact((tr) => tr.setSelection(new AllSelection(tr.doc)));
+    expect(shouldShowToolbar(editor)).toBe(false);
+  });
+
+  it("paragraph-end into code-start hides the toolbar", () => {
+    select(textStart("p") + "hello world".length, textStart("c"));
+    expect(shouldShowToolbar(editor)).toBe(false);
   });
 
   it("toolbar hidden while composing", () => {

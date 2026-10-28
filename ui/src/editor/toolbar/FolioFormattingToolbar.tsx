@@ -3,18 +3,26 @@ import { useEffect, useReducer, useRef } from "react";
 import type { FolioEditor } from "../schema";
 import { shouldShowToolbar } from "./toolbarVisibility";
 
-const BUTTON_IDS = ["fmt-bold", "fmt-italic", "fmt-underline", "fmt-strike", "fmt-code", "fmt-link"];
+/** BlockNote's own `data-test` of each toolbar button -> our test id. */
+const TEST_IDS: Record<string, string> = {
+  bold: "fmt-bold",
+  italic: "fmt-italic",
+  underline: "fmt-underline",
+  strike: "fmt-strike",
+  code: "fmt-code",
+  createLink: "fmt-link",
+};
 
 /**
  * The formatting toolbar: bold, italic, underline, strike, code, link and nothing else (tech spec
- * §5.14). BlockNote's controller decides when the toolbar opens (non-empty selection) and cannot
- * be given a show condition, so `shouldShowToolbar` is applied here: the toolbar renders nothing
- * when it says no, and is re-evaluated on every selection change and on IME composition edges.
+ * §5.14). BlockNote's controller decides when the toolbar opens and cannot be given a show
+ * condition (`ToolbarVisibilitySync` aligns it), so `shouldShowToolbar` is applied here too: the
+ * toolbar renders nothing when it says no, re-evaluated on selection changes and IME edges.
  */
 export function FolioFormattingToolbar() {
   const editor = useBlockNoteEditor() as unknown as FolioEditor;
   const [, refresh] = useReducer((n: number) => n + 1, 0);
-  useEditorSelectionChange(refresh, editor as never);
+  useEditorSelectionChange(refresh, editor);
   useEffect(() => {
     const dom = editor.prosemirrorView?.dom;
     if (!dom) return;
@@ -26,21 +34,22 @@ export function FolioFormattingToolbar() {
     };
   }, [editor]);
   const show = shouldShowToolbar(editor);
-  const buttons = useRef<HTMLSpanElement>(null);
+  const holder = useRef<HTMLSpanElement>(null);
   // BlockNote's toolbar components forward no props, so the test ids are set on their DOM nodes.
+  // Runs when the toolbar (re)appears; the buttons are static while it is shown.
   useEffect(() => {
-    const holder = buttons.current;
-    if (!holder) return;
-    holder.closest(".bn-formatting-toolbar")?.setAttribute("data-testid", "fmt-toolbar");
-    holder.querySelectorAll("button").forEach((b, i) => {
-      const id = BUTTON_IDS[i];
+    const node = holder.current;
+    if (!node) return;
+    node.closest(".bn-formatting-toolbar")?.setAttribute("data-testid", "fmt-toolbar");
+    node.querySelectorAll("button[data-test]").forEach((b) => {
+      const id = TEST_IDS[b.getAttribute("data-test") ?? ""];
       if (id) b.setAttribute("data-testid", id);
     });
-  });
+  }, [show]);
   if (!show) return null;
   return (
     <FormattingToolbar>
-      <span ref={buttons} style={{ display: "contents" }}>
+      <span ref={holder} style={{ display: "contents" }}>
         <BasicTextStyleButton basicTextStyle="bold" />
         <BasicTextStyleButton basicTextStyle="italic" />
         <BasicTextStyleButton basicTextStyle="underline" />

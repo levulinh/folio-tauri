@@ -49,9 +49,9 @@ test("bold button toggles and survives reload", async ({ page }) => {
 test("cmd b i u toggle on a selection", async ({ page }) => {
   await typeAndSelect(page, "xin chào", "chào");
   for (const [key, tag] of [["b", "strong"], ["i", "em"], ["u", "u"]] as const) {
-    await page.keyboard.press(`Meta+${key}`);
+    await page.keyboard.press(`ControlOrMeta+${key}`);
     await expect(firstLine(page).locator(tag)).toHaveText("chào");
-    await page.keyboard.press(`Meta+${key}`);
+    await page.keyboard.press(`ControlOrMeta+${key}`);
     await expect(firstLine(page).locator(tag)).toHaveCount(0);
   }
 });
@@ -59,7 +59,7 @@ test("cmd b i u toggle on a selection", async ({ page }) => {
 test("cmd b with no selection styles the next typed text", async ({ page }) => {
   await firstLine(page).click();
   await page.keyboard.type("nhẹ ");
-  await page.keyboard.press("Meta+b");
+  await page.keyboard.press("ControlOrMeta+b");
   await page.keyboard.type("đậm");
   await expect(firstLine(page).locator("strong")).toHaveText("đậm");
   await expect(firstLine(page)).toHaveText("nhẹ đậm");
@@ -81,9 +81,9 @@ test("no toolbar in a code block", async ({ page }) => {
 test("cmd b in a code block does nothing", async ({ page }) => {
   await codeBlockWith(page, "let x = 1");
   await selectLine(page);
-  await page.keyboard.press("Meta+b");
-  await page.keyboard.press("Meta+i");
-  await page.keyboard.press("Meta+u");
+  await page.keyboard.press("ControlOrMeta+b");
+  await page.keyboard.press("ControlOrMeta+i");
+  await page.keyboard.press("ControlOrMeta+u");
   await expect(editorOf(page).locator("strong, em, u")).toHaveCount(0);
 });
 
@@ -113,4 +113,32 @@ test("focus stays in the editor", async ({ page }) => {
   await page.getByTestId("fmt-bold").click();
   const inEditor = await page.evaluate(() => !!document.activeElement?.closest(".bn-editor"));
   expect(inEditor).toBe(true);
+});
+
+test("toolbar hidden while composing (real wiring)", async ({ page }) => {
+  await typeAndSelect(page, "xin chào", "chào");
+  await expect(toolbar(page)).toBeVisible();
+  await page.evaluate(() => document.querySelector(".bn-editor")!.dispatchEvent(new CompositionEvent("compositionstart")));
+  await expect(toolbar(page)).toHaveCount(0);
+  await page.evaluate(() => document.querySelector(".bn-editor")!.dispatchEvent(new CompositionEvent("compositionend")));
+  await expect(toolbar(page)).toBeVisible();
+});
+
+test("escape closes the toolbar", async ({ page }) => {
+  await typeAndSelect(page, "xin chào", "chào");
+  await expect(toolbar(page)).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(toolbar(page)).toHaveCount(0);
+});
+
+test("link button opens the link popover and the toolbar does not fight it", async ({ page }) => {
+  await typeAndSelect(page, "xin chào", "chào");
+  await page.getByTestId("fmt-link").click();
+  const field = page.locator(".bn-popover-content input, .bn-form-popover input").first();
+  await expect(field).toBeVisible();
+  await field.fill("example.com");
+  await expect(field).toHaveValue("example.com");
+  await expect(toolbar(page)).toBeVisible();
+  await field.press("Enter");
+  await expect(firstLine(page).locator("a")).toHaveText("chào");
 });

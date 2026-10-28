@@ -1,5 +1,5 @@
 import { BlockNoteEditor } from "@blocknote/core";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { schema } from "../schema";
 import { findExtension, findMatches, findPluginKey } from "./findPlugin";
 
@@ -72,6 +72,9 @@ describe("findMatches", () => {
 });
 
 describe("find plugin state", () => {
+  const open: Array<{ unmount(): void }> = [];
+  // Unmount so no prosemirror-view timer outlives its test.
+  afterEach(() => open.splice(0).forEach((e) => e.unmount()));
   function mounted() {
     const editor = BlockNoteEditor.create({
       schema,
@@ -82,6 +85,7 @@ describe("find plugin state", () => {
       ] as never,
     });
     editor.mount(document.createElement("div"));
+    open.push(editor);
     return editor;
   }
   const state = (editor: ReturnType<typeof mounted>) => findPluginKey.getState(editor.prosemirrorState)!;
