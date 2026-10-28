@@ -3,6 +3,7 @@
 pub mod db;
 pub mod error;
 pub mod ids;
+pub mod order;
 pub mod time;
 
 pub use db::Store;

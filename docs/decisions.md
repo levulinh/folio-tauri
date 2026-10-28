@@ -20,3 +20,8 @@ Status: decided (2026-10-28)
 Status: decided (2026-10-28)
 - `Store::conn` / `conn_mut` are `pub`, not `pub(crate)`: integration tests in `crates/folio-core/tests/` are a separate crate and read pragmas and `sqlite_master` through them. `Store::assets_dir()` is added so the field is used and later tasks can resolve asset paths.
 - `CoreError` messages (English, for logs) are `#[error(...)]` strings of our own; the UI maps `code` to Vietnamese text.
+
+## D-004 Order key format (Phase 1 Task 3)
+Status: decided (2026-10-28)
+- Keys are `FractionalIndex::to_string()` (lowercase hex of its bytes, so byte order is preserved); the `byte_order_matches_rust_string_order` test confirmed no extra encoding is needed.
+- `key_between` rejects `prev >= next` (including equal keys) and unparsable keys with `CoreError::InvalidOp { index: 0, .. }`.
