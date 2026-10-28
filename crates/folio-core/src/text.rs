@@ -1,8 +1,10 @@
 //! Plain-text extraction of a block, used for the search index (tech spec §3.6).
 
+use crate::error::CoreError;
 use crate::model::block::{parse_inline, parse_table, Inline};
 use rusqlite::Connection;
 use serde_json::Value;
+use std::cell::RefCell;
 
 /// Resolves dropdown option names while extracting text.
 pub trait TextContext {
@@ -19,19 +21,45 @@ impl TextContext for NoContext {
 }
 
 /// Reads option names from `option_sets.options` (a JSON array of `{id, name, color}`).
+/// A missing set or option and unparsable JSON are plain `None`; any other SQLite error also
+/// yields `None` but is remembered so the caller can fail the index run via [`take_error`].
+///
+/// [`take_error`]: DbTextContext::take_error
 #[allow(dead_code)] // first used by the indexing code in a later task
-pub(crate) struct DbTextContext<'a>(pub(crate) &'a Connection);
+pub(crate) struct DbTextContext<'a> {
+    conn: &'a Connection,
+    error: RefCell<Option<rusqlite::Error>>,
+}
+
+#[allow(dead_code)]
+impl<'a> DbTextContext<'a> {
+    pub(crate) fn new(conn: &'a Connection) -> Self {
+        Self {
+            conn,
+            error: RefCell::new(None),
+        }
+    }
+
+    /// The first real database error seen so far, if any (cleared by this call).
+    pub(crate) fn take_error(&self) -> Option<CoreError> {
+        self.error.borrow_mut().take().map(CoreError::Db)
+    }
+}
 
 impl TextContext for DbTextContext<'_> {
     fn option_name(&self, option_set_id: &str, option_id: &str) -> Option<String> {
-        let json: String = self
-            .0
-            .query_row(
-                "SELECT options FROM option_sets WHERE id = ?",
-                [option_set_id],
-                |r| r.get(0),
-            )
-            .ok()?;
+        let json: String = match self.conn.query_row(
+            "SELECT options FROM option_sets WHERE id = ?",
+            [option_set_id],
+            |r| r.get(0),
+        ) {
+            Ok(json) => json,
+            Err(rusqlite::Error::QueryReturnedNoRows) => return None,
+            Err(e) => {
+                self.error.borrow_mut().get_or_insert(e);
+                return None;
+            }
+        };
         let options: Value = serde_json::from_str(&json).ok()?;
         options
             .as_array()?
@@ -256,19 +284,45 @@ mod tests {
         assert_eq!(pt("paragraph", json!({}), c), "abc");
     }
 
+    fn store_with_set(options: &str) -> crate::Store {
+        let store = crate::Store::open_in_memory().unwrap();
+        store
+            .conn()
+            .execute_batch("INSERT INTO pages (id, title, order_key, created_at, updated_at) VALUES ('p', 't', 'a', 0, 0);")
+            .unwrap();
+        for (id, opts) in [("s", options), ("bad", "not json")] {
+            store
+                .conn()
+                .execute(
+                    "INSERT INTO option_sets (id, page_id, name, options, created_at, updated_at) VALUES (?, 'p', 'n', ?, 0, 0)",
+                    [id, opts],
+                )
+                .unwrap();
+        }
+        store
+    }
+
     #[test]
     fn db_context_reads_option_names() {
-        let conn = Connection::open_in_memory().unwrap();
-        conn.execute_batch(
-            "CREATE TABLE option_sets (id TEXT PRIMARY KEY, options TEXT NOT NULL);
-             INSERT INTO option_sets VALUES ('s', '[{\"id\":\"o1\",\"name\":\"Xong\",\"color\":\"green\"}]');
-             INSERT INTO option_sets VALUES ('bad', 'not json');",
-        )
-        .unwrap();
-        let ctx = DbTextContext(&conn);
+        let store = store_with_set(r#"[{"id":"o1","name":"Xong","color":"green"}]"#);
+        let ctx = DbTextContext::new(store.conn());
         assert_eq!(ctx.option_name("s", "o1").as_deref(), Some("Xong"));
         assert_eq!(ctx.option_name("s", "zz"), None);
         assert_eq!(ctx.option_name("missing", "o1"), None);
         assert_eq!(ctx.option_name("bad", "o1"), None);
+        assert!(ctx.take_error().is_none());
+    }
+
+    #[test]
+    fn db_context_records_real_errors() {
+        let store = store_with_set("[]");
+        store
+            .conn()
+            .execute_batch("ALTER TABLE option_sets RENAME TO option_sets_x;")
+            .unwrap();
+        let ctx = DbTextContext::new(store.conn());
+        assert_eq!(ctx.option_name("s", "o1"), None);
+        assert!(matches!(ctx.take_error(), Some(CoreError::Db(_))));
+        assert!(ctx.take_error().is_none());
     }
 }

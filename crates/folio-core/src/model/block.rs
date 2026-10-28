@@ -222,6 +222,24 @@ mod tests {
     }
 
     #[test]
+    fn reads_all_valid_styles() {
+        let v = json!([{"type":"text","text":"a","styles":{
+            "bold":true,"italic":true,"underline":true,"strike":true,"code":true}}]);
+        match &parse_inline(&v)[0] {
+            Inline::Text { styles, .. } => {
+                assert!(
+                    styles.bold
+                        && styles.italic
+                        && styles.underline
+                        && styles.strike
+                        && styles.code
+                );
+            }
+            other => panic!("unexpected {other:?}"),
+        }
+    }
+
+    #[test]
     fn garbage_never_fails() {
         let v = json!([1, "s", null, {}, {"x":1}, {"type":"mystery","a":1}, {"type":7},
                        {"type":"text"}, {"type":"text","text":5}]);
