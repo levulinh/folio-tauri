@@ -463,6 +463,9 @@ async function fillTable(page: Page) {
   }
 }
 
+/** BlockNote's `columnResizing({ cellMinWidth: 35 })` (node_modules/@blocknote/core table blocks). */
+const MIN_COLUMN_WIDTH = 35;
+
 const widthOf = async (page: Page, c: number) => (await cell(page, 0, c).boundingBox())!.width;
 
 /** Drags the border on the right edge of column `c` by `dx` px (prosemirror-tables' column resize handle). */
@@ -501,8 +504,8 @@ test("a dragged column border cannot shrink a column below the minimum", async (
   await dragBorder(page, 0, -400);
   await settle(page);
   const w = (await storedTable(page))!.columnWidths![0]!;
-  expect(w).toBeGreaterThanOrEqual(35);
-  expect(await widthOf(page, 0)).toBeGreaterThanOrEqual(34);
+  expect(w).toBeGreaterThanOrEqual(MIN_COLUMN_WIDTH);
+  expect(await widthOf(page, 0)).toBeGreaterThanOrEqual(MIN_COLUMN_WIDTH - 1); // rendered box may round down by 1px
 });
 
 /** Drags a table handle onto the middle of the cell at [r, c]. */
@@ -543,14 +546,17 @@ test("dragging a column handle moves its width with it", async ({ page }) => {
   await insertTable(page);
   await fillTable(page);
   await dragBorder(page, 0, 80);
+  await dragBorder(page, 1, 40);
   await settle(page);
-  const w0 = (await storedTable(page))!.columnWidths![0]!;
+  const before = (await storedTable(page))!.columnWidths!.map((w) => w ?? null);
+  expect(before[0]).not.toBeNull();
+  expect(before[1]).not.toBeNull();
   await hoverCell(page, 0, 0);
   await dragHandleTo(page, colHandle(page), 0, 2);
   await expect.poll(() => cellTexts(page)).toEqual([["b", "c", "a"], ["e", "f", "d"]]);
   await settle(page);
-  const widths = (await storedTable(page))!.columnWidths!;
-  expect(Math.abs(widths[2]! - w0)).toBeLessThan(2);
+  const after = (await storedTable(page))!.columnWidths!.map((w) => w ?? null);
+  expect(after).toEqual([before[1], before[2], before[0]]);
 });
 
 test("one undo reverts a row reorder and the store matches", async ({ page }) => {
@@ -610,16 +616,62 @@ test("toggling headers keeps the column widths", async ({ page }) => {
   expect(await norm()).toEqual(widths);
 });
 
-test("deleting row 0 of a table with a header row drops the header (the next row does not inherit it)", async ({ page }) => {
+test("deleting row 0 of a header table keeps the header on the new first row, one undo restores both", async ({ page }) => {
   await insertTable(page);
   await fillTable(page);
   await openRowMenu(page, 0);
   await choose(page, "Hàng tiêu đề");
+  await settle(page);
   await openRowMenu(page, 0);
   await choose(page, "Xoá hàng");
   await expect(rows(page)).toHaveCount(1);
+  await expect(table(page).locator("th")).toHaveCount(3);
+  await settle(page);
+  expect(await storedCells(page)).toEqual([["d", "e", "f"]]);
+  expect(await storedTable(page)).toMatchObject({ rows: 1, headerRows: 1 });
+  await page.keyboard.press("ControlOrMeta+z"); // one step restores the row and the header state
+  await expect(rows(page)).toHaveCount(2);
+  await settle(page);
+  expect(await storedCells(page)).toEqual([["a", "b", "c"], ["d", "e", "f"]]);
+  expect(await storedTable(page)).toMatchObject({ rows: 2, headerRows: 1 });
+  await expect(rows(page).first().locator("th")).toHaveCount(3);
+  await expect(rows(page).nth(1).locator("th")).toHaveCount(0);
+  await openRowMenu(page, 0); // delete again, then reload: the header survives a save round trip
+  await choose(page, "Xoá hàng");
   await reopen(page);
   expect(await storedCells(page)).toEqual([["d", "e", "f"]]);
-  expect((await storedTable(page))!.headerRows ?? 0).toBe(0);
-  await expect(table(page).locator("th")).toHaveCount(0);
+  expect(await storedTable(page)).toMatchObject({ rows: 1, headerRows: 1 });
+  await expect(table(page).locator("th")).toHaveCount(3);
+});
+
+test("deleting column 0 of a header-column table keeps the header and shifts the widths, one undo restores both", async ({ page }) => {
+  await insertTable(page);
+  await fillTable(page);
+  await dragBorder(page, 1, 60);
+  await openColMenu(page, 0);
+  await choose(page, "Cột tiêu đề");
+  await settle(page);
+  const widths = (await storedTable(page))!.columnWidths!.map((w) => w ?? null);
+  expect(widths[1]).not.toBeNull();
+  await openColMenu(page, 0);
+  await choose(page, "Xoá cột");
+  await expect(cols(page)).toHaveCount(2);
+  await expect(table(page).locator("th")).toHaveCount(2);
+  await settle(page);
+  expect(await storedCells(page)).toEqual([["b", "c"], ["e", "f"]]);
+  expect(await storedTable(page)).toMatchObject({ cols: 2, headerCols: 1 });
+  expect((await storedTable(page))!.columnWidths!.map((w) => w ?? null)).toEqual(widths.slice(1));
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect(cols(page)).toHaveCount(3);
+  await settle(page);
+  expect(await storedCells(page)).toEqual([["a", "b", "c"], ["d", "e", "f"]]);
+  expect(await storedTable(page)).toMatchObject({ cols: 3, headerCols: 1 });
+  expect((await storedTable(page))!.columnWidths!.map((w) => w ?? null)).toEqual(widths);
+  await expect(table(page).locator("th")).toHaveCount(2);
+  await openColMenu(page, 0); // delete again, then reload
+  await choose(page, "Xoá cột");
+  await reopen(page);
+  expect(await storedCells(page)).toEqual([["b", "c"], ["e", "f"]]);
+  expect(await storedTable(page)).toMatchObject({ cols: 2, headerCols: 1 });
+  await expect(table(page).locator("th")).toHaveCount(2);
 });

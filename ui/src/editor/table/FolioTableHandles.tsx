@@ -14,6 +14,31 @@ import {
 } from "@blocknote/react";
 import { useEffect, useRef } from "react";
 
+type TableContent = { rows: { cells: unknown[] }[]; columnWidths?: (number | undefined)[]; headerRows?: number; headerCols?: number };
+type TableBlock = { type: string; content: TableContent };
+/** The two editor calls the header-keeping delete needs, typed loosely (BlockNote's generic schema types do not narrow here). */
+type TableEditor = { getBlock(id: string): TableBlock | undefined; updateBlock(block: TableBlock, update: { content: TableContent }): void };
+
+/**
+ * Notion parity (D-029): deleting the header row/column makes the next one the header. One `updateBlock` on the freshly read
+ * block (not the hover snapshot), so the delete and the header flag are one transaction and one undo step.
+ */
+function deleteFirstKeepingHeader(editor: TableEditor, blockId: string, orientation: "row" | "column") {
+  const fresh = editor.getBlock(blockId);
+  if (!fresh || fresh.type !== "table") return;
+  const content:  { rows: { cells: unknown[] }[]; columnWidths?: (number | undefined)[]; headerRows?: number; headerCols?: number } = fresh.content;
+  const next =
+    orientation === "row"
+      ? { ...content, rows: content.rows.slice(1), headerRows: 1 }
+      : {
+          ...content,
+          rows: content.rows.map((r) => ({ ...r, cells: r.cells.slice(1) })),
+          columnWidths: content.columnWidths?.slice(1),
+          headerCols: 1,
+        };
+  editor.updateBlock(fresh, { content: next });
+}
+
 /** Delete row / column; the table's last row or column removes the whole block (D-029). */
 function DeleteItem({ orientation }: TableHandleMenuProps) {
   const Components = useComponentsContext()!;
@@ -28,6 +53,7 @@ function DeleteItem({ orientation }: TableHandleMenuProps) {
   const count = orientation === "row" ? rows.length : (rows[0]?.cells.length ?? 0);
   const onClick = () => {
     if (count <= 1) editor.removeBlocks([block]);
+    else if (index === 0 && Boolean(block.content[orientation === "row" ? "headerRows" : "headerCols"])) deleteFirstKeepingHeader(editor as unknown as TableEditor, block.id, orientation);
     else tableHandles.removeRowOrColumn(index, orientation);
   };
   return (
