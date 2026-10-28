@@ -1,6 +1,7 @@
 import { BlockNoteView } from "@blocknote/mantine";
 import {
   FormattingToolbarController,
+  SideMenuController,
   SuggestionMenuController,
   useCreateBlockNote,
   type DefaultReactSuggestionItem,
@@ -17,6 +18,8 @@ import { toEditorBlocks } from "./convert";
 import { dictionary } from "./dictionary";
 import { findExtension } from "./find/findPlugin";
 import { schema } from "./schema";
+import { FolioSideMenu } from "./sideMenu/FolioSideMenu";
+import { useFocusAfterDrop } from "./sideMenu/useFocusAfterDrop";
 import { SlashMenuComponent } from "./SlashMenuComponent";
 import { slashComposingGuard } from "./slashComposingGuard";
 import { filterSlashItems, slashItems } from "./slashMenu";
@@ -60,6 +63,7 @@ function EditorInstance({ loaded }: { loaded: Loaded }) {
     animations: false,
     extensions: [findExtension(), slashComposingGuard()],
   });
+  useFocusAfterDrop(editor as never);
   const getSlashItems = useCallback(
     async (query: string): Promise<DefaultReactSuggestionItem[]> => filterSlashItems(slashItems(editor), query),
     [editor],
@@ -83,9 +87,10 @@ function EditorInstance({ loaded }: { loaded: Loaded }) {
     };
   }, [tabId, editor, storedIds, setSaveStatus]);
   return (
-    <BlockNoteView editor={editor} theme={colorScheme} formattingToolbar={false} slashMenu={false} data-testid="editor">
+    <BlockNoteView editor={editor} theme={colorScheme} formattingToolbar={false} slashMenu={false} sideMenu={false} data-testid="editor">
       <ToolbarVisibilitySync />
       <FormattingToolbarController formattingToolbar={FolioFormattingToolbar} />
+      <SideMenuController sideMenu={FolioSideMenu} />
       <SuggestionMenuController
         triggerCharacter="/"
         getItems={getSlashItems}

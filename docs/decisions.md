@@ -164,3 +164,11 @@ Status: accepted.
 - Code blocks: no guard needed. BlockNote's suggestion plugin `apply` ignores transactions whose selection parent has `spec.code`, so the menu never opens in a code block (e2e asserts it).
 - The English `slash_menu` entry in `dictionary.ts` stays (BlockNote's default items, if ever rendered, stay English); Folio's labels live in `vi.slashMenu`.
 Status: accepted.
+
+## D-023 Block handles: BlockNote side menu with a delete-only drag menu; multi-block drag deferred (Phase 2 Task 4)
+`sideMenu={false}` + `<SideMenuController sideMenu={FolioSideMenu} />`. `FolioSideMenu` = BlockNote's `AddBlockButton` + `DragHandleButton` with a `dragHandleMenu` holding one `RemoveBlockItem` (`vi.delete`); the colour and table-header items are left out. + inserts a paragraph below (or reuses an empty block) and opens the slash menu, all BlockNote behaviour; dragging a list item moves its nested children because BlockNote nests them.
+- Test ids: BlockNote's buttons and menu items forward no props, so `side-add`, `side-drag` (found through the icons' `data-test`) and `drag-menu-delete` are set on the DOM nodes (ref callback for the menu item, whose content mounts only while the menu is open).
+- Focus after a drop: the drag starts on the handle button, so focus ends outside the editor and a following ⌘Z reached the webview's native undo, which wiped the document instead of reverting the move. `useFocusAfterDrop` refocuses the editor after a drop inside it, so one ⌘Z reverts the whole move (e2e asserts the stored tree after reload).
+- Playwright's `page.mouse` (down on the handle, move in steps, up) does drive BlockNote's HTML5 drag in WebKit, so the drag, undo, drop-onto-itself and Escape tests are real e2e tests (no Vitest fallback needed). Escape and drop-onto-itself assert that no `tabApply` is sent.
+- Deferred: dragging a multi-block selection as one unit (allowed by the block-controls spec); a handle drag moves only its own block (with children).
+Status: accepted.
