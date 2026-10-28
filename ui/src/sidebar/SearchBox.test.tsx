@@ -43,4 +43,16 @@ describe("SearchBox IME", () => {
     expect(onQueryChange).toHaveBeenLastCalledWith("");
     expect((input() as HTMLInputElement).value).toBe("");
   });
+
+  it("Escape while composing (or keyCode 229) does not clear the query", () => {
+    const { onQueryChange } = setup();
+    fireEvent.change(input(), { target: { value: "x" } });
+    onQueryChange.mockClear();
+    fireEvent.keyDown(input(), { key: "Escape", isComposing: true });
+    fireEvent.keyDown(input(), { key: "Escape", keyCode: 229 });
+    fireEvent.compositionStart(input());
+    fireEvent.keyDown(input(), { key: "Escape", keyCode: 27 });
+    expect(onQueryChange).not.toHaveBeenCalled();
+    expect((input() as HTMLInputElement).value).toBe("x");
+  });
 });

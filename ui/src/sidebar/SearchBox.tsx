@@ -33,13 +33,15 @@ export function SearchBox({ onQueryChange, onEnter, inputRef }: Props) {
         onQueryChange(e.currentTarget.value);
       }}
       onKeyDown={(e) => {
+        const composingNow = composing || e.nativeEvent.isComposing || e.keyCode === 229;
         if (e.key === "Escape") {
+          if (composingNow) return; // Escape cancels the IME composition, not the query
           setText("");
           onQueryChange("");
           return;
         }
         // WebKit sends the composition-commit Enter after compositionend with keyCode 229.
-        if (e.key !== "Enter" || composing || e.nativeEvent.isComposing || e.keyCode === 229) return;
+        if (e.key !== "Enter" || composingNow) return;
         e.preventDefault();
         onEnter();
       }}
