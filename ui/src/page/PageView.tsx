@@ -1,3 +1,4 @@
+import { FindBar } from "../editor/find/FindBar";
 import { Editor } from "../editor/Editor";
 import { usePageStore } from "../state/pageStore";
 import { usePagesStore } from "../state/pagesStore";
@@ -15,6 +16,7 @@ export function PageView() {
     <article className={styles.page}>
       <PageTitle key={pageId} pageId={pageId} />
       <SaveStatus />
+      <FindBar />
       {activeTabId !== null && <Editor key={activeTabId} tabId={activeTabId} />}
     </article>
   );

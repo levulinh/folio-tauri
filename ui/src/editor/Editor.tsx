@@ -9,6 +9,7 @@ import { reportError } from "../state/uiStore";
 import { getPipeline, pendingDocumentFor } from "./pipelineRegistry";
 import { toEditorBlocks } from "./convert";
 import { dictionary } from "./dictionary";
+import { findExtension } from "./find/findPlugin";
 import { schema } from "./schema";
 
 const DARK_QUERY = "(prefers-color-scheme: dark)";
@@ -41,6 +42,7 @@ function EditorInstance({ loaded }: { loaded: Loaded }) {
     initialContent: initial as never,
     trailingBlock: true,
     animations: false,
+    extensions: [findExtension()],
   });
   const setActiveEditor = usePageStore((s) => s.setActiveEditor);
   useEffect(() => {

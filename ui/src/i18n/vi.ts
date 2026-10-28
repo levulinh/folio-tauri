@@ -16,6 +16,9 @@ export const vi = {
   saveError: "Lỗi lưu — đang thử lại",
   find: "Tìm trong trang",
   findNoMatch: "Không có kết quả",
+  findNext: "Kết quả sau",
+  findPrev: "Kết quả trước",
+  findClose: "Đóng",
   errors: {
     not_found: "Không tìm thấy mục này",
     invalid_op: "Thao tác không hợp lệ",

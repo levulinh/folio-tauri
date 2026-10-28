@@ -1,0 +1,64 @@
+.bar {
+  position: fixed;
+  top: 12px;
+  right: 16px;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  color: var(--text);
+  background: var(--bg-popover);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: var(--shadow);
+}
+
+.input {
+  width: 180px;
+  padding: 4px 6px;
+  font-size: 14px;
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  outline: none;
+}
+
+.input::placeholder {
+  color: var(--text-muted);
+}
+
+.count {
+  min-width: 56px;
+  color: var(--text-muted);
+  font-size: 12px;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.button {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1;
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.button:hover {
+  background: var(--bg-hover);
+}
+
+/* Decoration classes from findPlugin.ts, applied inside the editor's DOM. */
+:global(.find-match) {
+  background: rgba(255, 212, 0, 0.35);
+  border-radius: 2px;
+}
+
+:global(.find-match-current) {
+  background: rgba(255, 150, 0, 0.6);
+}

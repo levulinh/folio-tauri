@@ -120,3 +120,12 @@ Status: decided (2026-10-28)
 - Snippets are plain text (React text node), clamped to 2 lines by CSS. `menu:search` focuses the box (no select-all). A whitespace-only query counts as empty (tree shown).
 - Enter acts only on results that belong to the current query: `useSearchResults` returns `{ query, hits, searchNow }`; if `query` differs from the typed text, Enter cancels the debounce, searches the typed text at once and opens its first hit when it arrives (dropped if a newer query started meanwhile). The list is dimmed while it belongs to an older query.
 - Results are not refreshed after a rename/delete/create until the next keystroke.
+
+## D-016 Find in page (Phase 1 Task 16)
+Status: decided (2026-10-28)
+- Registration: BlockNote 0.56's public extension API (`createExtension` + the `extensions` option of `useCreateBlockNote`), not `_tiptapEditor.registerPlugin`. The extension `find` contributes the find plugin plus a tiny mirror plugin whose view pushes the plugin state into the extension's `store`, which `FindBar` reads with `useSyncExternalStore`. Commands are meta-only transactions (`editor.transact(tr => tr.setMeta(findPluginKey, action))`): the document and selection are never touched.
+- `foldWithMap` (TS) returns UTF-16 offsets, one map entry per UTF-16 unit of the folded string (an astral char has two equal entries); Rust counts chars. Identical for text without astral chars; UTF-16 is what ProseMirror text offsets need.
+- Whitespace in TS fold is an explicit class equal to Rust's `char::is_whitespace` (U+0085 yes, U+FEFF no); the shared fixture got rows for tab, NBSP, NEL and BOM, so Rust runs them too.
+- Matches are per textblock (never across blocks), non-overlapping, left to right; non-text inline nodes contribute no text. The query is folded with the same `fold`; a whitespace-only query matches nothing. The current index resets to the first match when the query changes and is clamped when the document changes under an open bar.
+- The find bar keeps its text across close; closing clears the decorations, reopening (⌘F) re-applies the query and selects the text. Closing focuses the editor. IME: only committed text is searched, Enter during composition (keyCode 229) is ignored. Navigation and query changes scroll the current match to the centre (`domAtPos` + `scrollIntoView`).
+- Added `prosemirror-model/state/view` (exact versions BlockNote already resolves) as direct dependencies of `ui`; new `vi` keys `findNext`, `findPrev`, `findClose` for the bar's button labels.

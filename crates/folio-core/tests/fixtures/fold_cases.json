@@ -7,5 +7,9 @@
   ["người được ở", "nguoi duoc o"],
   ["ABC xyz", "abc xyz"],
   ["", ""],
-  ["😀 Ơn", "😀 on"]
+  ["😀 Ơn", "😀 on"],
+  ["a\tb", "a b"],
+  ["a\u00a0b", "a b"],
+  ["a\u0085b", "a b"],
+  ["a\ufeffb", "a\ufeffb"]
 ]
