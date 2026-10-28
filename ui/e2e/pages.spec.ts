@@ -40,7 +40,7 @@ test("rename", async ({ page }) => {
   await page.keyboard.type("Ghi chú 😀");
   await page.keyboard.press("Enter");
   await expect(page.getByTestId("tree-item-title").first()).toHaveText("Ghi chú 😀");
-  await expect(page.getByTestId("page-title")).toHaveText("Ghi chú 😀");
+  await expect(page.getByTestId("page-title")).toHaveValue("Ghi chú 😀");
 });
 
 test("rename: Escape cancels", async ({ page }) => {
@@ -77,7 +77,8 @@ test("delete asks and removes subtree", async ({ page }) => {
 test("untitled shows placeholder", async ({ page }) => {
   await createFirst(page);
   await expect(page.getByTestId("tree-item-title").first()).toHaveText("Không có tiêu đề");
-  await expect(page.getByTestId("page-title")).toHaveText("Không có tiêu đề");
+  await expect(page.getByTestId("page-title")).toHaveValue("");
+  await expect(page.getByTestId("page-title")).toHaveAttribute("placeholder", "Không có tiêu đề");
 });
 
 test("sidebar button and native menu event create pages", async ({ page }) => {

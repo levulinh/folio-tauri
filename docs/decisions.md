@@ -85,3 +85,13 @@ Status: decided (2026-10-28)
 - The delete dialog focuses Cancel (destructive action is never the default) and closes on Escape or backdrop click. If the open page (or an ancestor) is deleted the page view closes.
 - Page list refresh after `create` re-lists from the backend so order always comes from the backend's `orderKey`; `childrenOf` sorts by `orderKey`, then id.
 - Playwright runs a single `webkit` project (the app runs in WKWebView); `npx playwright install webkit` inside `ui/` is a one-time setup step.
+
+## D-013 Editor schema, title and conversion (Phase 1 Task 13)
+Status: decided (2026-10-28)
+- Schema API (BlockNote 0.56): `BlockNoteSchema.create({ blockSpecs, styleSpecs })` with an explicit pick from `defaultBlockSpecs` (paragraph, bulletListItem, numberedListItem, checkListItem, quote, codeBlock, table) and `heading: createHeadingBlockSpec({ levels: [1, 2, 3], allowToggleHeadings: false })`; styles picked from `defaultStyleSpecs` (bold, italic, underline, strike, code). `divider` does exist in 0.56 and is excluded; `pageBreak` is not in the defaults. Picking (instead of destructuring the removals) keeps eslint's unused-var rule quiet and new BlockNote defaults never leak in.
+- Dictionary: 0.56's `placeholders` has the keys `default`, `heading`, `bulletListItem`, `numberedListItem`, `checkListItem` as the brief states; the locale is imported as `viLocale`.
+- `toStored` maps `undefined` content to `null`. `toEditorBlocks` maps `null` content to `undefined` so BlockNote uses its default. Ids and nested children are preserved.
+- Markdown code-block shortcut in 0.56 needs a trailing space (``` then space), not just three backticks. `#`..`###`, `- `, `1. `, `[] `, `> ` convert as expected; `#### ` stays a paragraph (levels limited to 3).
+- The editor is created only after `tabLoad` resolves (`useCreateBlockNote` needs its initial content at creation); `<Editor key={activeTabId}>` remounts per tab. `pageStore.activeEditor` is set on mount and cleared on unmount.
+- `PageTitle` is a controlled `<input>`: it follows sidebar renames while it has no unsaved edit, saves 400 ms after the last change, on blur, on Enter and on unmount; no trim; no backend call when unchanged. Enter is ignored during IME composition.
+- No jsdom polyfills were needed for the headless-editor round-trip test. `interactive-widget=resizes-content` was added to the viewport meta to silence BlockNote's console warning.
