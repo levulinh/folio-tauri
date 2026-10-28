@@ -824,6 +824,7 @@ name = "folio-core"
 version = "0.1.0"
 dependencies = [
  "chrono",
+ "folio-core",
  "pretty_assertions",
  "rusqlite",
  "serde",

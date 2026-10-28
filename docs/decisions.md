@@ -18,7 +18,8 @@ Status: decided (2026-10-28)
 
 ## D-003 Store accessors and error messages (Phase 1 Task 2)
 Status: decided (2026-10-28)
-- `Store::conn` / `conn_mut` are `pub`, not `pub(crate)`: integration tests in `crates/folio-core/tests/` are a separate crate and read pragmas and `sqlite_master` through them. `Store::assets_dir()` is added so the field is used and later tasks can resolve asset paths.
+- **Superseded by Phase 3 Task 6b:** `Store::conn` / `conn_mut` are `pub` only under `#[cfg(any(test, feature = "test-support"))]` (folio-core's own integration tests enable the feature through a self-referential dev-dependency) and `pub(crate)` otherwise. folio-app must never use them nor enable the feature; a probe call there fails to compile.
+- Original reasoning (Phase 1): `Store::conn` / `conn_mut` were `pub`, not `pub(crate)`: integration tests in `crates/folio-core/tests/` are a separate crate and read pragmas and `sqlite_master` through them. `Store::assets_dir()` is added so the field is used and later tasks can resolve asset paths.
 - `CoreError` messages (English, for logs) are `#[error(...)]` strings of our own; the UI maps `code` to Vietnamese text.
 
 ## D-004 Order key format (Phase 1 Task 3)

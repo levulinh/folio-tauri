@@ -49,11 +49,26 @@ impl Store {
         Ok(store)
     }
 
+    // Raw connection access is crate-internal. Tests (this crate's unit tests and, via
+    // the `test-support` feature, its integration tests) get it as `pub`. folio-app
+    // must never enable the feature (D-003).
+    #[cfg(any(test, feature = "test-support"))]
     pub fn conn(&self) -> &Connection {
         &self.conn
     }
 
+    #[cfg(not(any(test, feature = "test-support")))]
+    pub(crate) fn conn(&self) -> &Connection {
+        &self.conn
+    }
+
+    #[cfg(any(test, feature = "test-support"))]
     pub fn conn_mut(&mut self) -> &mut Connection {
+        &mut self.conn
+    }
+
+    #[cfg(not(any(test, feature = "test-support")))]
+    pub(crate) fn conn_mut(&mut self) -> &mut Connection {
         &mut self.conn
     }
 

@@ -14,5 +14,10 @@ chrono.workspace = true
 ts-rs.workspace = true
 tempfile.workspace = true
 
+[features]
+# Exposes `Store::conn`/`conn_mut` to integration tests. Never enable from folio-app.
+test-support = []
+
 [dev-dependencies]
+folio-core = { path = ".", features = ["test-support"] }
 pretty_assertions.workspace = true
