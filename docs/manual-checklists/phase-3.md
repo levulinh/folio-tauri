@@ -27,11 +27,14 @@
 - [ ] Thêm hàng phía trên và phía dưới: hàng mới xuất hiện đúng chỗ, ô trống.
 - [ ] Thêm cột bên trái và bên phải: cột mới đúng chỗ, ô trống.
 - [ ] Nút mở rộng ở mép bảng thêm hàng / cột ở cuối.
+- [ ] Bấm + ở mép bảng (chưa bấm vào bảng trước đó) rồi ⌘Z ngay: hàng/cột vừa thêm biến mất.
 - [ ] Xoá một hàng giữa bảng, rồi xoá một cột giữa bảng: đúng hàng/cột bị xoá, phần còn lại giữ nguyên chữ.
 - [ ] Kéo tay cầm hàng đổi chỗ hàng: hàng nằm đúng chỗ thả, chữ đi theo hàng.
 - [ ] Kéo tay cầm cột đổi chỗ cột: cột nằm đúng chỗ thả, chữ đi theo cột.
 - [ ] Kéo đổi chỗ cột đã được kéo giãn rộng/hẹp: độ rộng đi theo cột (D-029).
 - [ ] Xoá hàng cuối cùng còn lại: cả bảng biến mất. Làm lại với bảng còn một cột và xoá cột đó: cả bảng biến mất.
+- [ ] Xoá bảng bằng ⋮⋮ → Xoá: cả bảng biến mất; ⌘Z: bảng quay lại.
+- [ ] ⌘Z sau khi xoá hàng/cột cuối làm mất bảng: bảng quay lại.
 
 ## 4. Kéo giãn cột
 
@@ -64,11 +67,12 @@
 - [ ] Bôi đen chữ trong ô, bấm ⌘B / ⌘I: đậm / nghiêng đúng, ⌘ lần nữa bỏ.
 - [ ] Bôi đen chữ trong ô, thêm link qua thanh định dạng: chữ thành link, bấm vào mở được.
 - [ ] Dán một đoạn nhiều dòng vào một ô: nội dung nằm trong ô đó (không tràn sang ô khác, không tạo bảng mới).
+- [ ] Dán vài dòng lẫn chữ đậm và chữ thường từ app Ghi chú vào một ô, tải lại, so sánh: định dạng và chữ giống trước khi tải lại.
+- [ ] Dán 30 dòng vào một ô: trang vẫn mượt; tìm kiếm ra một dòng vừa dán.
 
 ## 8. Hoàn tác
 
 - [ ] Sau mỗi thao tác cấu trúc (thêm hàng, thêm cột, xoá hàng, xoá cột, đổi chỗ hàng, đổi chỗ cột, bật/tắt tiêu đề): ⌘Z một lần chỉ lùi đúng một bước; ⇧⌘Z làm lại đúng bước đó.
-- [ ] Bảng vẫn hiện đúng chỗ trên trang sau khi hoàn tác (không nhảy về góc trên trái).
 
 ## 9. Tìm kiếm
 
@@ -94,6 +98,7 @@ Làm với **hai** bộ gõ: (A) Telex có sẵn của macOS, (B) EVKey hoặc O
 - [ ] Đang gõ dở một chữ (chưa chốt, còn gạch chân ghép) thì bấm Tab: chữ không bị cắt hay nhân đôi. (A ☐, B ☐)
 - [ ] Đang gõ dở một chữ thì bấm Enter: chữ không bị cắt hay nhân đôi; Enter không thêm hàng ngoài ý muốn. (A ☐, B ☐)
 - [ ] Gõ chữ có dấu ở ô cuối cùng rồi Tab (thêm hàng): chữ ở lại ô cuối, hàng mới trống. (A ☐, B ☐)
+- [ ] ⌘Z sau khi gõ một từ có dấu trong ô: ghi lại xoá cả từ hay từng dấu. (A ☐, B ☐)
 - [ ] Chế độ "sửa lỗi trình duyệt" (browser fix) của EVKey/OpenKey khi gõ trong ô: không mất chữ, không nhấp nháy. (B ☐)
 
 Kết luận: [ ] Đạt hết  [ ] Có mục hỏng (ghi số mục): ______
