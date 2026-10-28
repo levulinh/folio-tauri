@@ -171,3 +171,9 @@ test("selecting the same word again after escape reopens the toolbar", async ({ 
   await firstLine(page).getByText("chào", { exact: false }).dblclick();
   await expect(toolbar(page)).toBeVisible();
 });
+
+test("hovering the bold button shows the Vietnamese tooltip", async ({ page }) => {
+  await typeAndSelect(page, "xin chào", "chào");
+  await toolbar(page).getByTestId("fmt-bold").hover();
+  await expect(page.getByRole("tooltip")).toContainText("Đậm");
+});
