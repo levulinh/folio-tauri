@@ -36,7 +36,7 @@
 
 ## 4. Slash menu
 
-- [ ] Gõ `/` ở đoạn trống: menu mở; nhãn các mục bằng tiếng Anh (ví dụ Heading 1, Bullet List) — đúng thiết kế.
+- [ ] Gõ `/` ở đoạn trống: menu mở; nhãn các mục bằng tiếng Anh (ví dụ Heading 1, Bulleted list) — đúng thiết kế.
 - [ ] Gõ `/head`: danh sách lọc còn các mục tiêu đề.
 - [ ] Mũi tên lên/xuống đổi mục chọn; Enter chèn đúng khối đã chọn.
 - [ ] Escape đóng menu, không chèn gì, `/` vẫn nằm trong văn bản.
@@ -50,7 +50,7 @@
 - [ ] Bắt đầu gõ: hai nút ẩn đi; di chuyển chuột lại thì hiện lại.
 - [ ] Bấm nút +: chèn một đoạn trống bên dưới và mở slash menu.
 - [ ] Bấm ⋮⋮: menu chỉ có đúng một mục **Xoá**; chữ tiếng Việt, đọc được. Bấm Xoá thì block biến mất.
-- [ ] Tooltip của + và ⋮⋮ bằng tiếng Việt.
+- [ ] Hai nút + và ⋮⋮ không có tooltip hiển thị; kiểm tra tên truy cập (accessible name) của chúng bằng VoiceOver: đọc ra tiếng Việt, hợp lý.
 
 ## 6. Kéo thả block
 
@@ -76,6 +76,10 @@ Trước đây một lần ⌘Z có thể xoá sạch cả trang. Chuẩn bị: 
 - [ ] (d) Gõ chữ vào tiêu đề, rồi gõ chữ trong editor, rồi quay lại tiêu đề bấm ⌘Z. Ghi lại chuyện gì xảy ra (đã biết có thể không hoàn tác được tiêu đề): ______
 - [ ] (e) Trong editor, bấm menu **Sửa → Hoàn tác** bằng chuột ba lần liên tiếp: mỗi lần lùi đúng một bước. Rồi **Sửa → Làm lại** ba lần: trở lại đủ nội dung.
 - [ ] (f) Đang gõ dở một chữ Telex/EVKey (ví dụ `nguwowi`, chưa chốt) thì bấm ⌘Z: chữ không bị nhân đôi, không mất ký tự. Làm với cả Telex macOS và EVKey/OpenKey.
+- [ ] (h) Gõ ba đoạn cách nhau vài giây; ⌘Z bằng bàn phím MỘT lần chỉ xoá đoạn cuối; ⇧⌘Z đưa lại (kiểm tra phím tắt của menu không bắn hai lần).
+- [ ] (i) **Sửa → Hoàn tác** bằng chuột khi con trỏ ở ô tiêu đề, rồi ở ô tìm trong trang: hoàn tác trong chính ô đó.
+- [ ] (j) Mốc cơ sở cho tiêu đề: chỉ gõ tiêu đề rồi ⌘Z. Ghi lại kết quả: ______
+- [ ] (k) ⌘X / ⌘C / ⌘V vẫn chạy trong editor và trong ô tiêu đề.
 - [ ] (g) Sau khi kéo thả một block, ⌘Z một lần hoàn tác đúng lần kéo; thoát rồi mở lại vẫn đúng.
 
 ## 8. Escape trong editor
@@ -94,5 +98,8 @@ Làm với **hai** bộ gõ: (A) Telex có sẵn của macOS, (B) EVKey hoặc O
 - [ ] Gõ `/` ngay sau một chữ đang ghép dở (ví dụ `nguwowif` chưa chốt rồi `/`): slash menu không bật giữa chữ, chữ không hỏng. (A ☐, B ☐)
 - [ ] Mở slash menu ở đoạn trống rồi lọc bằng chữ có dấu (ví dụ `/bảng`, `/tiêu`): bộ gõ không vỡ, không mất chữ. (A ☐, B ☐)
 - [ ] Kéo thả một block rồi gõ ngay tiếng Việt: chữ vào đúng chỗ, bộ gõ không bị vỡ. (A ☐, B ☐)
+- [ ] ⌘Z sau khi gõ một từ có dấu: ghi lại ⌘Z xoá cả từ hay từng dấu: ______ (A ☐, B ☐)
+- [ ] Gõ câu thử trong ô nhập URL của popover link: không mất chữ, không lặp chữ, bộ gõ không vỡ. (A ☐, B ☐)
+- [ ] Chế độ "sửa lỗi trình duyệt" (browser fix) của EVKey/OpenKey: bôi đen chữ trước rồi gõ lại; thanh định dạng không nhấp nháy, không mất chữ. (B ☐)
 
 Kết luận: [ ] Đạt hết  [ ] Có mục hỏng (ghi số mục): ______
