@@ -18,6 +18,8 @@ export interface SavePipeline {
    * returns what it still owes the backend, for a new pipeline on the same tab to adopt.
    */
   handOff(): Promise<PipelineHandOff>;
+  /** Takes over unsaved work of a pipeline that was handed off (it is sent like any change). */
+  adopt(work: PipelineHandOff): void;
   status(): SaveStatus;
   onStatus(cb: (s: SaveStatus) => void): () => void;
 }
@@ -268,6 +270,16 @@ export function createSavePipeline(o: SavePipelineOptions): SavePipeline {
     return { ids: [...dirty], needsResync };
   }
 
+  function adopt(work: PipelineHandOff): void {
+    if (disposed) return;
+    const before = dirty.size;
+    for (const id of work.ids) dirty.add(id);
+    needsResync ||= work.needsResync;
+    if (before === 0) firstDirtyAt = Date.now();
+    if (dirty.size > 0 || needsResync) schedule();
+    emit();
+  }
+
   // Unsaved state at creation (default block, adopted work) is sent like any change.
   if (dirty.size > 0 || needsResync) {
     firstDirtyAt = Date.now();
@@ -278,6 +290,7 @@ export function createSavePipeline(o: SavePipelineOptions): SavePipeline {
     flush,
     dispose,
     handOff,
+    adopt,
     status,
     onStatus(cb) {
       listeners.add(cb);

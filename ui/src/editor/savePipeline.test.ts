@@ -4,7 +4,7 @@ import type { Backend } from "../backend/Backend";
 import type { BlockNode } from "../backend/generated/BlockNode";
 import type { BlockOp } from "../backend/generated/BlockOp";
 import { useUiStore } from "../state/uiStore";
-import { flushAll, registerPipeline, retirePipeline, takeOverRetired } from "./pipelineRegistry";
+import { flushAll, registerPipeline, adoptRetired, peekRetiredEditor, retirePipeline } from "./pipelineRegistry";
 import { toEditorBlocks } from "./convert";
 import { createSavePipeline, type SavePipeline } from "./savePipeline";
 import { schema } from "./schema";
@@ -324,13 +324,13 @@ describe("savePipeline", () => {
     await vitest.advanceTimersByTimeAsync(0);
 
     // A new Editor for the tab mounts: takes the retired editor's document instead of tabLoad.
-    const taken = await takeOverRetired("T1");
-    expect(taken).not.toBeNull();
-    expect(taken!.handOff.ids).toEqual(["a"]);
-    const editor2 = BlockNoteEditor.create({ schema, initialContent: taken!.editor.document as never });
+    const retiredEditor = peekRetiredEditor("T1");
+    expect(retiredEditor).toBe(old.editor);
+    const editor2 = BlockNoteEditor.create({ schema, initialContent: retiredEditor!.document as never });
     expect(JSON.stringify(editor2.document[0]!.content)).toContain("old-editor-text");
-    const p2 = createSavePipeline({ tabId: "T1", editor: editor2, backend: old.backend, storedIds: ["a"], adopt: taken!.handOff });
+    const p2 = createSavePipeline({ tabId: "T1", editor: editor2, backend: old.backend, storedIds: ["a"] });
     pipelines.push(p2);
+    adoptRetired("T1", p2);
     editor2.insertBlocks([{ type: "paragraph", content: "newer" }], "a", "after");
     await vitest.advanceTimersByTimeAsync(60_000);
 
@@ -341,7 +341,7 @@ describe("savePipeline", () => {
     expect(sent.map((o) => (o as { id: string }).id)).toContain("a");
     expect(JSON.stringify(sent)).not.toContain('"stored"');
     expect(old.pipeline.status()).toBe("saved"); // disposed
-    expect(await takeOverRetired("T1")).toBeNull();
+    expect(peekRetiredEditor("T1")).toBeNull();
   });
 
   it("flushAll_flushes_retired_pipelines", async () => {
@@ -356,7 +356,43 @@ describe("savePipeline", () => {
     expect(a.calls).toHaveLength(0);
     await flushAll(); // one attempt now, without waiting for the backoff
     expect(a.calls).toHaveLength(1);
-    await takeOverRetired("T9"); // cleanup
+    const sink = setup([node("z", "")], "T9");
+    adoptRetired("T9", sink.pipeline); // cleanup
+  });
+
+  it("strictmode_double_effect_does_not_orphan_a_pipeline", async () => {
+    const stored = [node("a", "stored")];
+    const e = setup(stored, "T1", {}, stored); // editor E, p1 (React effect run 1)
+    e.state.fail = { code: "db", message: "down" };
+    e.state.failTimes = 1000;
+    const off1 = registerPipeline(e.pipeline);
+    retirePipeline(e.pipeline, off1, "T1", e.editor); // StrictMode cleanup
+    const p2 = createSavePipeline({ tabId: "T1", editor: e.editor, backend: e.backend, storedIds: ["a"] }); // run 2
+    pipelines.push(p2);
+    const off2 = registerPipeline(p2);
+    adoptRetired("T1", p2);
+    e.editor.updateBlock("a", { content: "first" });
+    await vitest.advanceTimersByTimeAsync(600);
+    expect(p2.status()).toBe("error");
+    retirePipeline(p2, off2, "T1", e.editor); // user leaves the tab
+    await vitest.advanceTimersByTimeAsync(0);
+
+    // user reopens the tab: new editor E2 seeded from E, new pipeline p3 adopts
+    const seed = peekRetiredEditor("T1")!;
+    const e2 = BlockNoteEditor.create({ schema, initialContent: seed.document as never });
+    const p3 = createSavePipeline({ tabId: "T1", editor: e2, backend: e.backend, storedIds: ["a"] });
+    pipelines.push(p3);
+    adoptRetired("T1", p3);
+    e2.updateBlock("a", { content: "newer" });
+    await vitest.advanceTimersByTimeAsync(1000);
+    e.state.failTimes = 0; // backend recovers
+    await vitest.advanceTimersByTimeAsync(120_000);
+
+    const contents = e.calls.flatMap((c) => c.ops).filter((o) => o.op === "upsert").map((o) => JSON.stringify((o as { content: unknown }).content));
+    expect(contents.length).toBeGreaterThan(0);
+    expect(contents.at(-1)).toContain("newer");
+    expect(e.pipeline.status()).toBe("saved"); // p1 disposed
+    expect(p2.status()).toBe("saved"); // p2 disposed
   });
 
   it("flush_requested_during_a_flush_runs_after_it", async () => {
