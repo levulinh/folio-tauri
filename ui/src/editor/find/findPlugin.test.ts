@@ -39,6 +39,23 @@ describe("findMatches", () => {
     expect(findMatches(doc, "😀").map((m) => slice(doc, m))).toEqual(["😀"]);
   });
 
+  it("covers the combining marks of a decomposed last char", () => {
+    const doc = docOf("N\u0061\u0306\u0303ng");
+    const matches = findMatches(doc, "na");
+    expect(matches).toHaveLength(1);
+    expect(slice(doc, matches[0]!)).toBe("Na\u0306\u0303");
+  });
+
+  it("maps positions after a hard break and never matches across one", () => {
+    const doc = docOf("foo\nbar");
+    expect(doc.textContent).toBe("foobar");
+    const bar = findMatches(doc, "bar");
+    expect(bar).toHaveLength(1);
+    expect(doc.textBetween(bar[0]!.from, bar[0]!.to)).toBe("bar");
+    expect(bar[0]!.from).toBe(7); // content starts at 3 (blockGroup, blockContainer, paragraph), "foo" 3-6, break 6-7
+    expect(findMatches(doc, "foobar")).toEqual([]);
+  });
+
   it("searches every textblock, code blocks included, never across blocks", () => {
     const editor = BlockNoteEditor.create({
       schema,

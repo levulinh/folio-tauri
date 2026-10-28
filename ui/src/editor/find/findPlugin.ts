@@ -41,23 +41,38 @@ export function findMatches(doc: ProseMirrorNode, query: string): FindMatch[] {
   const matches: FindMatch[] = [];
   doc.descendants((node, pos) => {
     if (!node.isTextblock) return true;
+    // A run is the text between non-text inline nodes (hard breaks, ...): matches never span runs.
     let text = "";
-    const segments: Segment[] = [];
+    let segments: Segment[] = [];
+    const flush = () => {
+      if (segments.length > 0) matches.push(...matchRun(text, segments, needle));
+      text = "";
+      segments = [];
+    };
     node.forEach((child, offset) => {
-      if (!child.isText) return;
+      if (!child.isText) return flush();
       segments.push({ textStart: text.length, docPos: pos + 1 + offset });
       text += child.text;
     });
-    if (segments.length === 0) return false;
-    const { folded, map } = foldWithMap(text);
-    for (let at = folded.indexOf(needle); at !== -1; at = folded.indexOf(needle, at + needle.length)) {
-      const first = map[at]!;
-      const last = map[at + needle.length - 1]!;
-      const lastLength = String.fromCodePoint(text.codePointAt(last)!).length;
-      matches.push({ from: docPosOf(segments, first), to: docPosOf(segments, last) + lastLength });
-    }
+    flush();
     return false;
   });
+  return matches;
+}
+
+const TRAILING_MARK = /^\p{M}/u;
+
+function matchRun(text: string, segments: Segment[], needle: string): FindMatch[] {
+  const matches: FindMatch[] = [];
+  const { folded, map } = foldWithMap(text);
+  for (let at = folded.indexOf(needle); at !== -1; at = folded.indexOf(needle, at + needle.length)) {
+    const first = map[at]!;
+    const last = map[at + needle.length - 1]!;
+    let end = last + String.fromCodePoint(text.codePointAt(last)!).length;
+    // Keep a decomposed char's combining marks inside the match (no split grapheme).
+    for (let m = TRAILING_MARK.exec(text.slice(end)); m; m = TRAILING_MARK.exec(text.slice(end))) end += m[0].length;
+    matches.push({ from: docPosOf(segments, first), to: docPosOf(segments, end - 1) + 1 });
+  }
   return matches;
 }
 
