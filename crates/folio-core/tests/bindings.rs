@@ -109,7 +109,10 @@ fn export_bindings() {
         op.contains("\"op\": \"upsert\"") || op.contains("op: \"upsert\""),
         "{op}"
     );
-    assert!(generated("BlockNode.ts").contains("Record<string, unknown>"));
+    let node = generated("BlockNode.ts");
+    assert!(node.contains("Record<string, unknown>"), "{node}");
+    assert!(node.contains("content: unknown"), "{node}");
+    assert!(node.contains("children: Array<BlockNode>"), "{node}");
     for f in ["TabMeta", "CreatedPage", "SearchHit", "ErrorPayload"] {
         generated(&format!("{f}.ts"));
     }

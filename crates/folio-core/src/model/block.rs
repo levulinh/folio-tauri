@@ -78,8 +78,9 @@ pub struct DropdownProps {
 }
 
 /// One inline element. `Unknown` is produced by [`parse_inline`] for an element whose `type`
-/// is not one we know (serde's `other` only works on unit variants of untagged data, so we
-/// parse element by element instead).
+/// is not one we know, or whose fields do not fit a known `type`. `#[serde(other)]` would only
+/// cover the unknown-tag case (a known tag with malformed fields would still fail the whole
+/// array), so [`parse_inline`] deserialises element by element and maps any failure to `Unknown`.
 #[derive(Debug, Clone, Deserialize, PartialEq)]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum Inline {
