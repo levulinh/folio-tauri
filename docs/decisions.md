@@ -40,3 +40,12 @@ Status: decided (2026-10-28)
 - `Styles` deserialises leniently: `null`, a non-object, or a wrongly typed field falls back to the default for that field, so a text run (or link run) with bad styles keeps its text.
 - `dateChip` text is `dd/MM/yyyy`; an unparsable date contributes `""`.
 - Table text: non-empty cell texts joined by one space, row-major. `image`/`file`: non-empty parts of `name`, `caption` joined by one space. Unknown block types contribute their inline content text, else `""`.
+
+## D-007 Block edit semantics (Phase 1 Task 8)
+Status: decided (2026-10-28)
+- Upsert validation errors (non-UUID id, non-object `props`, unknown/self/descendant parent, `prev_sibling_id` that is the block itself, missing, in another tab or under another parent, `key_between` failure) are `InvalidOp { index: <op index in batch>, reason }`; the whole batch rolls back. `content` may be absent, null (stored as NULL), an array or an object.
+- A block id that already exists in another tab is `InvalidOp`: blocks never move across tabs. Parents and prevs are looked up in the transaction, so earlier ops of the same batch count. `Delete` only removes blocks of the given tab.
+- Order key lies strictly between prev's key and the next sibling's key, excluding the block itself.
+- `apply`, `load_tab` and `replace_tab_blocks` return `NotFound { entity: "tab" }` for an unknown tab. `applied` = number of ops. A failed option-name lookup (database error) fails the whole `apply`.
+- `replace_tab_blocks` keeps `created_at` of ids that existed before, rejects non-UUID, duplicate or non-object-props nodes (`InvalidOp { index: 0 }`), and bumps `pages.updated_at`.
+- `load_tab` orders siblings by `order_key` (id as tiebreak); orphans go to top level with an `eprintln!`.

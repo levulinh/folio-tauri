@@ -25,13 +25,11 @@ impl TextContext for NoContext {
 /// yields `None` but is remembered so the caller can fail the index run via [`take_error`].
 ///
 /// [`take_error`]: DbTextContext::take_error
-#[allow(dead_code)] // first used by the indexing code in a later task
 pub(crate) struct DbTextContext<'a> {
     conn: &'a Connection,
     error: RefCell<Option<rusqlite::Error>>,
 }
 
-#[allow(dead_code)]
 impl<'a> DbTextContext<'a> {
     pub(crate) fn new(conn: &'a Connection) -> Self {
         Self {

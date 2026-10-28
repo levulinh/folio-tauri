@@ -1,5 +1,6 @@
 //! Folio core: storage, model and rendering. Never depends on Tauri or any UI crate.
 
+pub mod blocks;
 pub mod db;
 pub mod error;
 pub mod fold;

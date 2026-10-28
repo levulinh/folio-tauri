@@ -18,7 +18,6 @@ pub(crate) fn index_title(tx: &Transaction, page_id: &str, title: &str) -> Resul
 }
 
 /// Replaces the `block` row of a block. `plain` is the block's plain text; it is folded here.
-#[allow(dead_code)] // first used by the edit ops (Task 7)
 pub(crate) fn index_block(
     tx: &Transaction,
     block_id: &str,
