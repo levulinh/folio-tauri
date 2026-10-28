@@ -335,3 +335,106 @@ test("table as last block keeps a paragraph after it", async ({ page }) => {
   expect(stored).toEqual(["table", "paragraph"]);
   await expect(editorOf(page).locator('[data-content-type="paragraph"]').last()).toHaveText("below");
 });
+
+const toolbar = (page: Page) => page.getByTestId("fmt-toolbar");
+
+/** Types `text` in cell [r, c] and selects exactly it (Shift+ArrowLeft per character: Shift+Home can reach into the neighbouring cells). */
+async function typeAndSelectInCell(page: Page, r: number, c: number, text: string) {
+  await focusCell(page, r, c);
+  await page.keyboard.type(text);
+  for (let i = 0; i < text.length; i++) await page.keyboard.press("Shift+ArrowLeft");
+}
+
+test("toolbar appears for a selection inside a cell", async ({ page }) => {
+  await insertTable(page);
+  await typeAndSelectInCell(page, 0, 1, "xin chào");
+  await expect(toolbar(page)).toBeVisible();
+  await expect(toolbar(page).getByTestId("fmt-bold")).toBeVisible();
+});
+
+test("bold, italic, code and link in a cell persist", async ({ page }) => {
+  await insertTable(page);
+  await typeAndSelectInCell(page, 0, 0, "alpha");
+  await page.keyboard.press("ControlOrMeta+b");
+  await expect(cell(page, 0, 0).locator("strong")).toHaveText("alpha");
+  await typeAndSelectInCell(page, 0, 1, "beta");
+  await page.keyboard.press("ControlOrMeta+i");
+  await expect(cell(page, 0, 1).locator("em")).toHaveText("beta");
+  await typeAndSelectInCell(page, 0, 2, "gamma");
+  await expect(toolbar(page)).toBeVisible();
+  await page.getByTestId("fmt-code").click();
+  await expect(cell(page, 0, 2).locator("code")).toHaveText("gamma");
+  await typeAndSelectInCell(page, 1, 0, "delta");
+  await expect(toolbar(page)).toBeVisible();
+  await page.getByTestId("fmt-link").click();
+  const field = page.locator(".bn-popover-content input, .bn-form-popover input").first();
+  await expect(field).toBeVisible();
+  await field.fill("example.com");
+  await field.press("Enter");
+  await expect(cell(page, 1, 0).locator("a")).toHaveText("delta");
+  await reopen(page);
+  await expect(cell(page, 0, 0).locator("strong")).toHaveText("alpha");
+  await expect(cell(page, 0, 1).locator("em")).toHaveText("beta");
+  await expect(cell(page, 0, 2).locator("code")).toHaveText("gamma");
+  await expect(cell(page, 1, 0).locator("a")).toHaveText("delta");
+});
+
+test("line breaks in a cell persist", async ({ page }) => {
+  await insertTable(page);
+  await focusCell(page, 0, 0);
+  await page.keyboard.type("một");
+  await page.keyboard.press("Shift+Enter");
+  await page.keyboard.type("hai");
+  await page.keyboard.press("Shift+Enter");
+  await page.keyboard.type("ba");
+  await reopen(page);
+  expect((await storedCells(page))[0]![0]).toBe("một\nhai\nba");
+  await expect(rows(page)).toHaveCount(2);
+  await expect(cell(page, 0, 0).locator("br")).toHaveCount(2);
+  expect(await cellTexts(page)).toHaveLength(2);
+});
+
+async function blockCount(page: Page): Promise<number> {
+  return page.evaluate(async () => {
+    const fake = window.__folioFake!;
+    const pages = await fake.pagesList();
+    const tabs = await fake.tabsList(pages[0]!.id);
+    return (await fake.tabLoad(tabs[0]!.id)).length;
+  });
+}
+
+test("pasting 30 lines into a cell keeps them in the cell", async ({ page }) => {
+  await insertTable(page);
+  await settle(page);
+  const before = await blockCount(page);
+  await focusCell(page, 0, 0);
+  const text = Array.from({ length: 30 }, (_, i) => `dòng ${i + 1}`).join("\n");
+  // Method: synthetic ClipboardEvent("paste") with text/plain on the focused cell's editable.
+  await page.evaluate((t) => {
+    const dt = new DataTransfer();
+    dt.setData("text/plain", t);
+    const target = document.activeElement ?? document.querySelector(".bn-editor")!;
+    target.dispatchEvent(new ClipboardEvent("paste", { clipboardData: dt, bubbles: true, cancelable: true }));
+  }, text);
+  await expect(cell(page, 0, 0)).toContainText("dòng 30");
+  await expect(rows(page)).toHaveCount(2);
+  expect(await blockCount(page)).toBe(before);
+  const start = Date.now();
+  await expect(page.getByTestId("save-status")).toHaveAttribute("data-status", "saved", { timeout: 3000 });
+  expect(Date.now() - start).toBeLessThan(3000);
+  await reopen(page);
+  const stored = await storedCells(page);
+  expect(stored[0]![0]).toBe(text);
+  expect(stored.flat().filter((t) => t !== "")).toHaveLength(1);
+  expect(await blockCount(page)).toBe(before);
+});
+
+test("search finds text typed in a cell", async ({ page }) => {
+  await insertTable(page);
+  await focusCell(page, 1, 1);
+  await page.keyboard.type("Hà Nội");
+  await settle(page);
+  await page.getByTestId("search-input").fill("ha noi");
+  await expect(page.getByTestId("search-result")).toHaveCount(1);
+  await expect(page.getByTestId("search-result").first()).toContainText("Hà Nội");
+});

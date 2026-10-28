@@ -176,3 +176,36 @@ fn deleted_page_is_not_found() {
     s.delete_page(&a).unwrap();
     assert!(s.search("hello", 50).unwrap().is_empty());
 }
+
+#[test]
+fn table_cell_text_is_searchable() {
+    let mut s = Store::open_in_memory().unwrap();
+    let created = s.create_page(None, None).unwrap();
+    s.rename_page(&created.page.id, "Bảng").unwrap();
+    let cell = |runs: serde_json::Value| json!({"type":"tableCell","content":runs});
+    let content = json!({"type":"tableContent","rows":[
+        {"cells":[
+            cell(json!([
+                {"type":"text","text":"Hà ","styles":{"bold":true}},
+                {"type":"text","text":"Nội\nmùa thu","styles":{}}
+            ])),
+            cell(json!([{"type":"text","text":"khác","styles":{}}]))
+        ]}
+    ]});
+    s.apply(
+        &created.tab.id,
+        &[BlockOp::Upsert {
+            id: new_id(),
+            parent_id: None,
+            prev_sibling_id: None,
+            r#type: "table".into(),
+            props: json!({}),
+            content: Some(content),
+        }],
+    )
+    .unwrap();
+    let hits = s.search("ha noi", 50).unwrap();
+    assert_eq!(ids(&hits), [created.page.id.as_str()]);
+    assert!(!hits[0].title_match);
+    assert!(hits[0].snippet.contains("Hà Nội"), "{}", hits[0].snippet);
+}
