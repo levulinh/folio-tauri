@@ -51,3 +51,7 @@
   font-size: 13px;
   color: var(--text-muted);
 }
+
+.stale {
+  opacity: 0.5;
+}

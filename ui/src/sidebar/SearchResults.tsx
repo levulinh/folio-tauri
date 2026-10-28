@@ -9,7 +9,7 @@ export function openHit(hit: SearchHit): void {
 }
 
 /** Result list shown in place of the tree. Snippets are rendered as plain text. */
-export function SearchResults({ hits }: { hits: SearchHit[] | null }) {
+export function SearchResults({ hits, stale }: { hits: SearchHit[] | null; stale: boolean }) {
   const current = usePageStore((s) => s.pageId);
   if (hits === null) return null;
   if (hits.length === 0) {
@@ -20,12 +20,13 @@ export function SearchResults({ hits }: { hits: SearchHit[] | null }) {
     );
   }
   return (
-    <ul className={styles.list}>
+    <ul className={`${styles.list} ${stale ? styles.stale : ""}`} data-stale={stale}>
       {hits.map((hit) => (
         <li key={hit.pageId}>
           <button
             type="button"
             className={`${styles.result} ${current === hit.pageId ? styles.selected : ""}`}
+            aria-current={current === hit.pageId ? "page" : undefined}
             data-testid="search-result"
             data-page-id={hit.pageId}
             onClick={() => openHit(hit)}

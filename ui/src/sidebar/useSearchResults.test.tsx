@@ -26,7 +26,7 @@ describe("useSearchResults", () => {
   it("debounces 200 ms and returns hits", async () => {
     search.mockResolvedValue([hit("a")]);
     const { result, rerender } = renderHook(({ q }) => useSearchResults(q), { initialProps: { q: "" } });
-    expect(result.current).toBeNull();
+    expect(result.current.hits).toBeNull();
     rerender({ q: "a" });
     await act(async () => {
       await vi.advanceTimersByTimeAsync(199);
@@ -35,7 +35,7 @@ describe("useSearchResults", () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1);
     });
-    expect(result.current?.map((h) => h.pageId)).toEqual(["a"]);
+    expect(result.current.hits?.map((h) => h.pageId)).toEqual(["a"]);
   });
 
   it("ignores a slower earlier response once a later query has been answered", async () => {
@@ -50,12 +50,12 @@ describe("useSearchResults", () => {
     await act(async () => {
       await vi.advanceTimersByTimeAsync(200);
     });
-    expect(result.current?.map((h) => h.pageId)).toEqual(["b"]);
+    expect(result.current.hits?.map((h) => h.pageId)).toEqual(["b"]);
     await act(async () => {
       slow.resolve([hit("stale")]);
       await Promise.resolve();
     });
-    expect(result.current?.map((h) => h.pageId)).toEqual(["b"]);
+    expect(result.current.hits?.map((h) => h.pageId)).toEqual(["b"]);
   });
 
   it("clears results when the query becomes empty, even if a response is in flight", async () => {
@@ -70,6 +70,30 @@ describe("useSearchResults", () => {
       slow.resolve([hit("late")]);
       await Promise.resolve();
     });
-    expect(result.current).toBeNull();
+    expect(result.current.hits).toBeNull();
+  });
+});
+
+describe("useSearchResults searchNow (Enter before the debounce elapses)", () => {
+  it("searches the full typed query at once and reports which query the hits belong to", async () => {
+    search.mockImplementation((q) => Promise.resolve([hit(q)]));
+    const { result, rerender } = renderHook(({ q }) => useSearchResults(q), { initialProps: { q: "da na" } });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(200);
+    });
+    expect(result.current.query).toBe("da na");
+    rerender({ q: "da nang" });
+    expect(result.current.query).toBe("da na"); // stale until the new response lands
+    let found: SearchHit[] | null = null;
+    await act(async () => {
+      found = await result.current.searchNow("da nang");
+    });
+    expect(found!.map((h) => h.pageId)).toEqual(["da nang"]);
+    expect(result.current.query).toBe("da nang");
+    search.mockClear();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300);
+    });
+    expect(search).not.toHaveBeenCalled(); // debounce timer was cancelled
   });
 });

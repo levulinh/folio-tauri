@@ -61,3 +61,11 @@ test("shift-cmd-f focuses", async ({ page }) => {
   await page.evaluate(() => window.__folioFake!.emitMenu("search"));
   await expect(input(page)).toBeFocused();
 });
+
+test("Enter right after typing opens the result of the full query", async ({ page }) => {
+  await newPage(page, "Đà Lạt", "alpha");
+  await newPage(page, "Đà Nẵng", "beta");
+  await input(page).pressSequentially("da nang");
+  await input(page).press("Enter");
+  await expect(page.getByTestId("page-title")).toHaveValue("Đà Nẵng");
+});

@@ -118,3 +118,5 @@ Status: decided (2026-10-28)
 - `useSearchResults` debounces 200 ms and uses a request counter: a response is applied only if no newer query (or clear) started since; stale responses and their errors are dropped.
 - Escape clears the query and returns to the tree. Clicking a result opens the page and KEEPS the query and results, so the user can click through several results (selected result is highlighted).
 - Snippets are plain text (React text node), clamped to 2 lines by CSS. `menu:search` focuses the box (no select-all). A whitespace-only query counts as empty (tree shown).
+- Enter acts only on results that belong to the current query: `useSearchResults` returns `{ query, hits, searchNow }`; if `query` differs from the typed text, Enter cancels the debounce, searches the typed text at once and opens its first hit when it arrives (dropped if a newer query started meanwhile). The list is dimmed while it belongs to an older query.
+- Results are not refreshed after a rename/delete/create until the next keystroke.

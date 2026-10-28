@@ -11,7 +11,7 @@ import styles from "./Sidebar.module.css";
 export function Sidebar() {
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
-  const hits = useSearchResults(query);
+  const { query: hitsQuery, hits, searchNow } = useSearchResults(query);
   const searching = query.trim() !== "";
 
   useEffect(() => backend.onMenu("search", () => inputRef.current?.focus()), []);
@@ -20,16 +20,22 @@ export function Sidebar() {
     <aside className={styles.sidebar}>
       <div className={styles.drag} data-tauri-drag-region />
       <SearchBox
-        query={query}
         onQueryChange={setQuery}
         onEnter={() => {
-          const first = hits?.[0];
-          if (first) openHit(first);
+          if (query.trim() === "") return;
+          if (hitsQuery === query && hits) {
+            if (hits[0]) openHit(hits[0]);
+            return;
+          }
+          // Results belong to an older query (or none yet): search the typed query now.
+          void searchNow(query).then((found) => {
+            if (found?.[0]) openHit(found[0]);
+          });
         }}
         inputRef={inputRef}
       />
       <div className={styles.section}>{vi.pagesSection}</div>
-      <nav className={styles.scroll}>{searching ? <SearchResults hits={hits} /> : <PageTree />}</nav>
+      <nav className={styles.scroll}>{searching ? <SearchResults hits={hits} stale={hitsQuery !== query} /> : <PageTree />}</nav>
       <button
         type="button"
         className={styles.newPage}

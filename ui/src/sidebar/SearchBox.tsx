@@ -3,15 +3,14 @@ import { vi } from "../i18n/vi";
 import styles from "./SearchBox.module.css";
 
 interface Props {
-  query: string;
   onQueryChange(query: string): void;
   onEnter(): void;
   inputRef: RefObject<HTMLInputElement | null>;
 }
 
 /** Search input. Never reports a query or reacts to Enter while an IME composition is active. */
-export function SearchBox({ query, onQueryChange, onEnter, inputRef }: Props) {
-  const [text, setText] = useState(query);
+export function SearchBox({ onQueryChange, onEnter, inputRef }: Props) {
+  const [text, setText] = useState("");
   const [composing, setComposing] = useState(false);
 
   return (
@@ -19,7 +18,8 @@ export function SearchBox({ query, onQueryChange, onEnter, inputRef }: Props) {
       ref={inputRef}
       className={styles.box}
       data-testid="search-input"
-      type="text"
+      type="search"
+      aria-label={vi.searchPlaceholder}
       value={text}
       placeholder={vi.searchPlaceholder}
       onChange={(e) => {
@@ -27,6 +27,7 @@ export function SearchBox({ query, onQueryChange, onEnter, inputRef }: Props) {
         if (!composing && !(e.nativeEvent as InputEvent).isComposing) onQueryChange(e.target.value);
       }}
       onCompositionStart={() => setComposing(true)}
+      onBlur={() => setComposing(false)}
       onCompositionEnd={(e) => {
         setComposing(false);
         onQueryChange(e.currentTarget.value);

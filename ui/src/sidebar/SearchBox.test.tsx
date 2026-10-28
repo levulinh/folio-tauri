@@ -8,7 +8,7 @@ const input = () => screen.getByTestId("search-input");
 function setup() {
   const onQueryChange = vi.fn();
   const onEnter = vi.fn();
-  render(<SearchBox query="" onQueryChange={onQueryChange} onEnter={onEnter} inputRef={{ current: null }} />);
+  render(<SearchBox onQueryChange={onQueryChange} onEnter={onEnter} inputRef={{ current: null }} />);
   return { onQueryChange, onEnter };
 }
 
