@@ -44,7 +44,7 @@ test("find highlights folded matches, cycles, and Escape clears", async ({ page 
   await expect(page.locator(".find-match")).toHaveCount(0);
 });
 
-test("Escape with the emoji picker open closes only the picker, not the find bar", async ({ page }) => {
+test("Escape with the slash menu open closes only the menu, not the find bar", async ({ page }) => {
   await page.getByTestId("sidebar-new-page").click();
   await page.getByTestId("page-title").press("Enter");
   await page.keyboard.type("abc ");
@@ -53,14 +53,14 @@ test("Escape with the emoji picker open closes only the picker, not the find bar
   await expect(page.getByTestId("find-input")).toBeFocused();
   await page.locator(".bn-inline-content").first().click();
   await page.keyboard.press("End");
-  await page.keyboard.type(":smi");
-  await expect(page.locator(".bn-grid-suggestion-menu")).toBeVisible();
+  await page.keyboard.type("/");
+  await expect(page.locator(".bn-suggestion-menu")).toBeVisible();
 
   await page.keyboard.press("Escape");
-  await expect(page.locator(".bn-grid-suggestion-menu")).toHaveCount(0);
+  await expect(page.locator(".bn-suggestion-menu")).toHaveCount(0);
   await expect(page.getByTestId("find-input")).toBeVisible();
 
-  // Without a picker, Escape from the editor closes the bar.
+  // Without a menu, Escape from the editor closes the bar.
   await page.keyboard.press("Escape");
   await expect(page.getByTestId("find-input")).toHaveCount(0);
   await expect(page.locator(".bn-editor")).not.toBeFocused(); // BlockNote's own Escape blurs (D-016)

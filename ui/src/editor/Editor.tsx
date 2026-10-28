@@ -89,7 +89,7 @@ function EditorInstance({ loaded }: { loaded: Loaded }) {
     };
   }, [tabId, editor, storedIds, setSaveStatus]);
   return (
-    <BlockNoteView editor={editor} theme={colorScheme} formattingToolbar={false} slashMenu={false} sideMenu={false} data-testid="editor">
+    <BlockNoteView editor={editor} theme={colorScheme} formattingToolbar={false} slashMenu={false} sideMenu={false} emojiPicker={false} data-testid="editor">
       <ToolbarVisibilitySync />
       <FormattingToolbarController formattingToolbar={FolioFormattingToolbar} />
       <SideMenuController sideMenu={FolioSideMenu} />

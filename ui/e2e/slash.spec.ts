@@ -27,6 +27,14 @@ test("slash opens the menu with English labels", async ({ page }) => {
   await expect(items(page)).toHaveText(TITLES);
 });
 
+test("typing `:smile` opens no emoji grid menu (the picker is disabled)", async ({ page }) => {
+  await firstLine(page).click();
+  await page.keyboard.type(":smile");
+  await expect(page.locator(".bn-grid-suggestion-menu")).toHaveCount(0);
+  await expect(page.locator(".bn-suggestion-menu")).toHaveCount(0);
+  await expect(firstLine(page)).toHaveText(":smile");
+});
+
 test("typing filters", async ({ page }) => {
   await firstLine(page).click();
   await page.keyboard.type("/head");

@@ -197,3 +197,7 @@ Status: accepted.
 ## D-027 Prettier is not adopted (Phase 2 Task 7f)
 Formatting is enforced by `cargo fmt --all --check` for Rust and ESLint for the UI (both run in `scripts/check.sh`). A second formatter would add a config, a CI step and diff churn for no behaviour gain on a one-person codebase. The Phase 1 "add Prettier" carry-over is closed as won't-do; revisit only if UI style drift becomes a review problem.
 Status: accepted.
+
+## D-028 BlockNote's emoji picker is disabled (Phase 2 final review)
+`emojiPicker={false}` on `BlockNoteView`. The spec does not ask for it, and its `:` trigger opens from `handleTextInput` with no `view.composing` check, the same IME hazard D-022 guards for `/`. `:smile` now stays plain text (e2e). The `.bn-grid-suggestion-menu` selector in `FindBar`'s Escape handling is kept: it is harmless and still covers any grid menu; the find e2e for "Escape closes only the open menu" now uses the slash menu.
+Status: accepted.
