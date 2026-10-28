@@ -7,7 +7,7 @@ import type { PageMeta } from "./generated/PageMeta";
 import type { SearchHit } from "./generated/SearchHit";
 import type { TabMeta } from "./generated/TabMeta";
 
-export type MenuEvent = "new-page" | "new-subpage" | "find" | "search";
+export type MenuEvent = "new-page" | "new-subpage" | "find" | "search" | "undo" | "redo";
 
 /** Everything the UI may ask of the backend. Every method rejects with an `ErrorPayload`. */
 export interface Backend {

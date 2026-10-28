@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { backend } from "./backend";
+import { routeMenuHistory } from "./editor/menuHistory";
 import { EmptyState } from "./page/EmptyState";
 import { PageView } from "./page/PageView";
 import { Sidebar } from "./sidebar/Sidebar";
@@ -27,6 +28,8 @@ export function App() {
         const current = usePageStore.getState().pageId;
         if (current !== null) void createAndOpenPage(current);
       }),
+      backend.onMenu("undo", () => routeMenuHistory("undo")),
+      backend.onMenu("redo", () => routeMenuHistory("redo")),
       backend.onFlushRequest(flushForQuit),
     ];
     return () => offs.forEach((off) => off());

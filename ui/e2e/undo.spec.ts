@@ -122,3 +122,39 @@ test("undo with focus in the editor undoes exactly one step", async ({ page }) =
   await settle(page);
   expect(await stored(page)).toEqual(["Một", "Hai"]);
 });
+
+const emit = (page: Page, name: "undo" | "redo") => page.evaluate((n) => window.__folioFake!.emitMenu(n), name);
+
+test("Edit-menu Undo / Redo with focus in the editor step one group at a time, every time (D-026)", async ({ page }) => {
+  await inEditor(page);
+  const seen: string[][] = [];
+  for (let i = 0; i < 3; i++) {
+    await emit(page, "undo");
+    await settle(page);
+    seen.push(await stored(page));
+  }
+  expect(seen).toEqual([["Một", "Hai"], ["Một"], []]);
+  for (const want of [["Một"], ["Một", "Hai"], GROUPS]) {
+    await emit(page, "redo");
+    await settle(page);
+    expect(await stored(page)).toEqual(want);
+  }
+});
+
+test("Edit-menu Undo with the find input focused undoes the input only", async ({ page }) => {
+  await page.evaluate(() => window.__folioFake!.emitMenu("find"));
+  const input = page.getByTestId("find-input");
+  await expect(input).toBeFocused();
+  await page.keyboard.type("abc");
+  await expect(input).toHaveValue("abc");
+  await emit(page, "undo");
+  await expect(input).toHaveValue("");
+  await expectUntouched(page);
+});
+
+test("Edit-menu Undo with nothing focused leaves the document alone", async ({ page }) => {
+  await page.mouse.click(1380, 880);
+  await emit(page, "undo");
+  await emit(page, "undo");
+  await expectUntouched(page);
+});

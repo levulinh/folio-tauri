@@ -12,12 +12,16 @@ const NEW_PAGE_ID: &str = "new-page";
 const NEW_SUBPAGE_ID: &str = "new-subpage";
 const FIND_ID: &str = "find";
 const SEARCH_ID: &str = "search";
+const UNDO_ID: &str = "undo";
+const REDO_ID: &str = "redo";
 
 const EVENT_ITEMS: &[(&str, &str)] = &[
     (NEW_PAGE_ID, "menu:new-page"),
     (NEW_SUBPAGE_ID, "menu:new-subpage"),
     (FIND_ID, "menu:find"),
     (SEARCH_ID, "menu:search"),
+    (UNDO_ID, "menu:undo"),
+    (REDO_ID, "menu:redo"),
 ];
 
 pub fn build(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
@@ -53,8 +57,9 @@ pub fn build(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
         "Sửa",
         true,
         &[
-            &PredefinedMenuItem::undo(app, Some("Hoàn tác"))?,
-            &PredefinedMenuItem::redo(app, Some("Làm lại"))?,
+            // Custom (not the native undo:/redo:): the UI routes history itself (D-026).
+            &MenuItem::with_id(app, UNDO_ID, "Hoàn tác", true, Some("CmdOrCtrl+Z"))?,
+            &MenuItem::with_id(app, REDO_ID, "Làm lại", true, Some("CmdOrCtrl+Shift+Z"))?,
             &PredefinedMenuItem::separator(app)?,
             &PredefinedMenuItem::cut(app, Some("Cắt"))?,
             &PredefinedMenuItem::copy(app, Some("Sao chép"))?,
@@ -83,6 +88,35 @@ pub fn on_event(app: &AppHandle, event: MenuEvent) {
     if let Some((_, name)) = EVENT_ITEMS.iter().find(|(item, _)| *item == id) {
         if let Err(e) = app.emit_to("main", name, ()) {
             eprintln!("could not emit {name}: {e}");
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn undo_and_redo_are_custom_items_that_emit_events() {
+        let event_of = |id: &str| {
+            EVENT_ITEMS
+                .iter()
+                .find(|(item, _)| *item == id)
+                .map(|(_, e)| *e)
+        };
+        assert_eq!(event_of(UNDO_ID), Some("menu:undo"));
+        assert_eq!(event_of(REDO_ID), Some("menu:redo"));
+    }
+
+    /// The native `undo:`/`redo:` items bypass the UI's history routing (D-024/D-026), so the Edit menu
+    /// must not contain them. (A menu cannot be built off the main thread, hence the source check.)
+    #[test]
+    fn edit_menu_has_no_predefined_undo_or_redo() {
+        let source = include_str!("menu.rs");
+        for kind in ["undo", "redo"] {
+            let needle = format!("{}{}::{kind}(", "Predefined", "MenuItem");
+            let production = source.split("#[cfg(test)]").next().unwrap();
+            assert!(!production.contains(&needle), "found {needle}");
         }
     }
 }
