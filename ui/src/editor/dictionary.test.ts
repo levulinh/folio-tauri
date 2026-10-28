@@ -6,7 +6,8 @@ const SHOWN_SECTIONS = ["formatting_toolbar", "link_toolbar", "side_menu", "drag
 /** Identical in both languages on purpose. */
 const SAME_AS_ENGLISH = new Set(["Code"]);
 /** Keyboard shortcuts ("Mod+B", "Tab", ...) and the empty string are not translated. */
-const isShortcut = (path: string) => path.endsWith("secondary_tooltip");
+const SHORTCUT = /^(Mod\+|Shift\+|Tab$|$)/;
+const isShortcut = (path: string, text: string) => path.endsWith("secondary_tooltip") && SHORTCUT.test(text);
 
 function leaves(value: unknown, path = ""): [string, string][] {
   if (typeof value === "string") return [[path, value]];
@@ -34,6 +35,10 @@ it("strike shortcut hint matches BlockNote's real binding", () => {
   expect(dictionary.formatting_toolbar.strike.secondary_tooltip).toBe("Mod+Shift+S");
 });
 
+it("link toolbar delete is Xoá liên kết", () => {
+  expect(dictionary.link_toolbar.delete.tooltip).toBe("Xoá liên kết");
+});
+
 it("drag menu delete is Xoá", () => {
   expect(dictionary.drag_handle.delete_menuitem).toBe("Xoá");
 });
@@ -49,7 +54,7 @@ it("keeps the Folio placeholders", () => {
 it("no shown section is left in English", () => {
   const english = new Map(SHOWN_SECTIONS.flatMap((s) => leaves(en[s], s)));
   const untranslated = SHOWN_SECTIONS.flatMap((s) => leaves(dictionary[s], s)).filter(
-    ([path, text]) => !isShortcut(path) && !SAME_AS_ENGLISH.has(text) && english.get(path) === text,
+    ([path, text]) => !isShortcut(path, text) && !SAME_AS_ENGLISH.has(text) && english.get(path) === text,
   );
   expect(untranslated).toEqual([]);
 });
