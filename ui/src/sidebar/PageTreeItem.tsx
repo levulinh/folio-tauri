@@ -155,6 +155,9 @@ function RenameInput({ page, onDone }: { page: PageMeta; onDone(): void }) {
       onClick={(e) => e.stopPropagation()}
       onKeyDown={(e) => {
         e.stopPropagation();
+        // An IME's Enter (commit the word) and Escape (cancel the composition) belong to the IME;
+        // WebKit sends the commit Enter after compositionend with keyCode 229.
+        if (e.nativeEvent.isComposing || e.keyCode === 229) return;
         if (e.key === "Enter") finish(true, e.currentTarget.value);
         else if (e.key === "Escape") finish(false, "");
       }}
