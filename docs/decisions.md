@@ -193,3 +193,7 @@ The native `undo:`/`redo:` predefined items ran into the D-024 guard: one native
 - Rust: a menu cannot be built off the main thread in a unit test, so `menu.rs` tests check the id -> event table and (source scan) that the production code has no predefined undo/redo item.
 - Not covered: the native app is untested here (no GUI); the accelerator-intercept behaviour is Tauri/muda's documented behaviour.
 Status: accepted.
+
+## D-027 Prettier is not adopted (Phase 2 Task 7f)
+Formatting is enforced by `cargo fmt --all --check` for Rust and ESLint for the UI (both run in `scripts/check.sh`). A second formatter would add a config, a CI step and diff churn for no behaviour gain on a one-person codebase. The Phase 1 "add Prettier" carry-over is closed as won't-do; revisit only if UI style drift becomes a review problem.
+Status: accepted.
