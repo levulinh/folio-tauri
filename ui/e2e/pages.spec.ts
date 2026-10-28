@@ -167,6 +167,24 @@ test("clicking the menu trigger again closes the menu", async ({ page }) => {
   await expect(page.getByTestId("menu-rename")).toHaveCount(0);
 });
 
+test("opening a row's menu closes the menu of another row", async ({ page }) => {
+  await createFirst(page);
+  // Enough rows that the last one's trigger is not covered by the first row's open menu.
+  for (let i = 2; i <= 5; i++) {
+    await page.getByTestId("sidebar-new-page").click();
+    await expect(items(page)).toHaveCount(i);
+  }
+  const first = items(page).nth(0);
+  const last = items(page).nth(4);
+  await first.hover();
+  await first.getByTestId("tree-item-menu").click();
+  await expect(page.getByTestId("menu-rename")).toHaveCount(1);
+  await last.hover();
+  await last.getByTestId("tree-item-menu").click();
+  await expect(page.getByTestId("menu-rename")).toHaveCount(1);
+  await expect(last.getByTestId("menu-rename")).toBeVisible();
+});
+
 test("menu new page creates and focuses title", async ({ page }) => {
   await createFirst(page);
   await page.evaluate(() => window.__folioFake!.emitMenu("new-page"));

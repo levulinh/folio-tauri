@@ -17,8 +17,10 @@ export function Menu({ items, onClose }: { items: MenuItem[]; onClose(): void })
     };
     const onDown = (e: MouseEvent) => {
       const target = e.target as Element;
-      // The trigger's own click toggles the menu, so don't also close it here.
-      if (target.closest?.("[data-menu-trigger]")) return;
+      // The menu's own trigger (a sibling inside the same anchor element) toggles it on click,
+      // so don't also close it here. Another menu's trigger must still close this one.
+      const trigger = target.closest?.("[data-menu-trigger]");
+      if (trigger && ref.current?.parentElement?.contains(trigger)) return;
       if (ref.current && !ref.current.contains(target)) onClose();
     };
     document.addEventListener("keydown", onKey);
