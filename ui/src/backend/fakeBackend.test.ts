@@ -117,11 +117,21 @@ describe("tabApply", () => {
   it("invalid_op_rolls_back", async () => {
     const { b, tab } = await newTab();
     await b.tabApply(tab.id, [up(1, null, null, "a")]);
-    const before = await b.tabLoad(tab.id);
+    const before = structuredClone(await b.tabLoad(tab.id));
     await expect(
       b.tabApply(tab.id, [up(2, null, 1, "b"), del(1), up(3, 42, null)]),
     ).rejects.toMatchObject({ code: "invalid_op" });
     expect(await b.tabLoad(tab.id)).toEqual(before);
+  });
+
+  it("does not alias caller data or loaded trees with its state", async () => {
+    const { b, tab } = await newTab();
+    const op = up(1, null, null, "gốc");
+    await b.tabApply(tab.id, [op]);
+    (op as { content: { text: string }[] }).content[0]!.text = "đổi";
+    const loaded = await b.tabLoad(tab.id);
+    (loaded[0]!.content as { text: string }[])[0]!.text = "đổi nữa";
+    expect(((await b.tabLoad(tab.id))[0]!.content as { text: string }[])[0]!.text).toBe("gốc");
   });
 
   it("accepts a parent upserted earlier in the same batch", async () => {
@@ -268,9 +278,18 @@ describe("persistence and events", () => {
     const first = createFakeBackend({ persistKey: "k" });
     const { page, tab } = await first.pageCreate();
     await first.pageRename(page.id, "Giữ lại");
-    await first.tabApply(tab.id, [up(1, null, null, "còn đây")]);
+    await first.tabApply(tab.id, [
+      {
+        ...(up(1, null, null) as Extract<BlockOp, { op: "upsert" }>),
+        content: [
+          { type: "text", text: "đậm ", styles: { bold: true, textColor: "red" } },
+          { type: "link", href: "https://x", content: [{ type: "text", text: "nối", styles: { italic: true } }] },
+        ],
+      },
+    ]);
     const second = createFakeBackend({ persistKey: "k" });
     expect((await second.pagesList()).map((p) => p.title)).toEqual(["Giữ lại"]);
+    expect(await second.tabLoad(tab.id)).toEqual(await first.tabLoad(tab.id));
     expect(ids(await second.tabLoad(tab.id))).toEqual([uid(1)]);
     expect(await createFakeBackend({ persistKey: "other" }).pagesList()).toEqual([]);
   });

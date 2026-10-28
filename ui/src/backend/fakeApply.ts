@@ -58,8 +58,8 @@ function upsert(
     id: op.id,
     parentId: op.parentId,
     type: op.type,
-    props: op.props,
-    content: op.content,
+    props: structuredClone(op.props),
+    content: structuredClone(op.content),
   };
   const rest = recs.filter((r) => r.id !== op.id);
   const index =

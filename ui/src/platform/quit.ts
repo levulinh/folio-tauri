@@ -10,9 +10,15 @@ export function listenFlushRequest(flush: () => Promise<void>): () => void {
   const pending = listen("flush-request", async () => {
     try {
       await flush();
-    } finally {
-      await invoke(Commands.quitReady);
+    } catch (e) {
+      console.error("flush before quit failed", e);
     }
+    await invoke(Commands.quitReady);
   });
-  return () => void pending.then((off) => off());
+  let done = false;
+  return () => {
+    if (done) return;
+    done = true;
+    pending.then((off) => off()).catch((e) => console.error("flush unlisten failed", e));
+  };
 }

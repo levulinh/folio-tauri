@@ -136,7 +136,7 @@ export function createFakeBackend(opts: { persistKey?: string } = {}): FakeBacke
     },
 
     async tabLoad(tabId) {
-      return toTree(tabBlocks(tabId));
+      return structuredClone(toTree(tabBlocks(tabId)));
     },
 
     async tabApply(tabId, ops) {
