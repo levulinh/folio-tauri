@@ -26,3 +26,11 @@ Status: decided (2026-10-28)
 - The `fractional_index` crate was dropped: v2.0.2 underflows in `new_between` (`right[i] - 1` on a 0x00 byte; repro: 300 prepends, then between two smallest keys), which panics in debug and returns an out-of-bounds key in release. Keys are now generated in `order.rs`, a port of rocicorp's MIT `fractional-indexing` (`generateKeyBetween`).
 - Format: base-62 digits `0-9A-Za-z` (ASCII order, so BINARY collation = Rust `str` order). Integer part with a length-encoding head char (`a`-`z` / `A`-`Z`) plus digits, then a fractional part that never ends in `0`. The smallest integer key `A` + 26 zeros is rejected.
 - `key_between` rejects `prev >= next` ("order keys out of order") and malformed keys with `CoreError::InvalidOp { index: 0, .. }`, and finally checks the result is strictly between the bounds; it never panics.
+
+## D-005 Pages and tabs edge behaviour (Phase 1 Task 6)
+Status: decided (2026-10-28)
+- `create_page(parent, after)`: `after_id` must be a child of `parent_id`; otherwise `NotFound { entity: "page" }`. A missing `parent_id` is also `NotFound`.
+- `list_pages` orders by `parent_id, order_key`, so top-level pages (NULL parent) come first.
+- `move_tab(id, prev)`: `prev` must be another tab of the same page, else `NotFound { entity: "tab" }`. Moving a tab after itself is not supported.
+- Tab create/rename/move/delete and page rename bump `pages.updated_at`; tab writes also set `tabs.updated_at`.
+- `index_title` stores `fold(title)`; `index_block` folds the plain text it receives.

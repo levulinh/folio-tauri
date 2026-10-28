@@ -6,6 +6,9 @@ pub mod fold;
 pub mod ids;
 pub mod model;
 pub mod order;
+pub mod pages;
+pub(crate) mod search;
+pub mod tabs;
 pub mod time;
 
 pub use db::Store;
