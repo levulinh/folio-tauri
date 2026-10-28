@@ -1,4 +1,4 @@
-import { fold } from "../lib/fold";
+import { fold, foldWithMap } from "../lib/fold";
 import type { PageMeta } from "./generated/PageMeta";
 import type { SearchHit } from "./generated/SearchHit";
 
@@ -55,27 +55,7 @@ function matchesAll(text: string, tokens: string[]): boolean {
   return tokens.every((t) => words.some((w) => w.startsWith(t)));
 }
 
-/** Folds char by char, mapping each folded char back to its original char index. */
-function foldWithMap(s: string): { folded: string; map: number[] } {
-  let folded = "";
-  const map: number[] = [];
-  Array.from(s).forEach((original, idx) => {
-    for (const ch of original.toLowerCase().normalize("NFD")) {
-      if (/\p{M}/u.test(ch)) continue;
-      if (/\s/u.test(ch)) {
-        if (folded !== "" && !folded.endsWith(" ")) {
-          folded += " ";
-          map.push(idx);
-        }
-        continue;
-      }
-      folded += ch === "đ" ? "d" : ch;
-      map.push(idx);
-    }
-  });
-  return { folded, map };
-}
-
+/** UTF-16 offset in `original` of the first word-start match of `token` (any substring match, else 0). */
 function matchCenter(original: string, token: string): number {
   const { folded, map } = foldWithMap(original);
   let at = -1;
@@ -89,9 +69,11 @@ function matchCenter(original: string, token: string): number {
   return map[at] ?? 0;
 }
 
+/** `center` is a UTF-16 offset into `text`; the cut itself counts chars (code points), like the core. */
 function cutSnippet(text: string, center: number): string {
   const chars = Array.from(text);
   if (chars.length <= SNIPPET_MAX) return text;
+  center = Array.from(text.slice(0, center)).length;
   const start = Math.min(Math.max(center - SNIPPET_MAX / 2, 0), chars.length - SNIPPET_MAX);
   const end = start + SNIPPET_MAX;
   const out = chars.slice(start, end);
