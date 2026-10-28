@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "dev:web": "VITE_BACKEND=fake vite",
+    "dev:e2e": "VITE_BACKEND=fake vite --port 5199 --strictPort",
     "build": "tsc -b && vite build",
     "typecheck": "tsc -b --noEmit",
     "lint": "eslint .",

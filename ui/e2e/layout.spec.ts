@@ -19,11 +19,10 @@ const mainBox = async (page: Page) => (await page.locator("main").boundingBox())
 for (const scheme of ["light", "dark"] as const) {
   test(`editor has no own background (${scheme})`, async ({ page }) => {
     await page.emulateMedia({ colorScheme: scheme });
-    const bg = (sel: string) => page.locator(sel).first().evaluate((el) => getComputedStyle(el).backgroundColor);
-    const pageBg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    await expect(page.locator(".bn-container")).toHaveAttribute("data-color-scheme", scheme);
     for (const sel of [".bn-editor", ".bn-container"]) {
-      const value = await bg(sel);
-      expect([TRANSPARENT, pageBg]).toContain(value);
+      const value = await page.locator(sel).first().evaluate((el) => getComputedStyle(el).backgroundColor);
+      expect(value).toBe(TRANSPARENT);
     }
   });
 }
@@ -39,17 +38,21 @@ test("column is 900px on a wide window", async ({ page }) => {
 
 test("column shrinks on a narrow window", async ({ page }) => {
   await page.setViewportSize({ width: 900, height: 800 });
-  const noScroll = await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth);
-  expect(noScroll).toBe(true);
-  const main = await mainBox(page);
-  expect(Math.abs((await titleBox(page)).width - (main.width - 144))).toBeLessThanOrEqual(1);
+  const m = await page.locator("main").evaluate((el) => ({ scroll: el.scrollWidth, client: el.clientWidth }));
+  expect(m.scroll).toBeLessThanOrEqual(m.client);
+  const doc = await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth);
+  expect(doc).toBe(true);
+  expect(Math.abs((await titleBox(page)).width - (m.client - 144))).toBeLessThanOrEqual(1);
 });
 
 test("side menu fits in the gutter", async ({ page }) => {
   await page.setViewportSize({ width: 900, height: 800 });
-  await page.getByTestId("editor").locator(".bn-block-content").first().hover();
+  const block = page.getByTestId("editor").locator(".bn-block-content").first();
+  await block.hover();
   const menu = page.locator(".bn-side-menu").first();
   await expect(menu).toBeVisible();
   const box = (await menu.boundingBox())!;
+  const text = (await block.locator(".bn-inline-content").boundingBox())!;
   expect(box.x).toBeGreaterThanOrEqual((await mainBox(page)).x);
+  expect(box.x + box.width).toBeLessThanOrEqual(text.x);
 });

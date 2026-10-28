@@ -143,3 +143,7 @@ Status: decided (2026-10-29)
 
 ## D-019 Page column: border-box with width 100%, max-width 1044px (Phase 2 Task 1)
 The content column is 900 px of text between 72 px gutters. `.page` is `box-sizing: border-box; width: 100%; max-width: 1044px` (900 + 2 x 72) instead of content-box `max-width: 900px`: inside the flex-column `<main>`, `margin: 0 auto` made a content-box block shrink to its content (title was 366 px wide), and border-box + `width: 100%` also lets the column shrink with a narrow window. Gutter stays 72 px; BlockNote's side menu fits at a 900 px viewport. The editor has no background of its own (`editor.css` overrides BlockNote's `--bn-colors-editor-*` on `.bn-container.bn-root`).
+Status: accepted. `theme.css` already sets global `box-sizing: border-box`, so the column's border-box is consistent with the rest of the UI.
+
+## D-020 E2E runs on its own port with the fake backend (Phase 2 Task 1 fix)
+`playwright.config.ts` starts `npm run dev:e2e` (`VITE_BACKEND=fake vite --port 5199 --strictPort`) and never reuses a running server unless `E2E_REUSE_SERVER=1`. A developer's `npm run dev` (real backend, port 5173) previously got reused and broke every spec. Status: accepted.
