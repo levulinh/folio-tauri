@@ -34,3 +34,9 @@ Status: decided (2026-10-28)
 - `move_tab(id, prev)`: `prev` must be another tab of the same page, else `NotFound { entity: "tab" }`. Moving a tab after itself is not supported.
 - Tab create/rename/move/delete and page rename bump `pages.updated_at`; tab writes also set `tabs.updated_at`.
 - `index_title` stores `fold(title)`; `index_block` folds the plain text it receives.
+
+## D-006 Plain-text and style leniency (Phase 1 Task 7)
+Status: decided (2026-10-28)
+- `Styles` deserialises leniently: `null`, a non-object, or a wrongly typed field falls back to the default for that field, so a text run (or link run) with bad styles keeps its text.
+- `dateChip` text is `dd/MM/yyyy`; an unparsable date contributes `""`.
+- Table text: non-empty cell texts joined by one space, row-major. `image`/`file`: non-empty parts of `name`, `caption` joined by one space. Unknown block types contribute their inline content text, else `""`.

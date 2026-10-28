@@ -19,8 +19,7 @@ pub struct BlockNode {
     pub children: Vec<BlockNode>,
 }
 
-#[derive(Debug, Clone, Default, Deserialize, PartialEq)]
-#[serde(default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct Styles {
     pub bold: bool,
     pub italic: bool,
@@ -29,6 +28,22 @@ pub struct Styles {
     pub code: bool,
     /// Space-separated comment thread ids.
     pub comment: Option<String>,
+}
+
+/// Lenient: `null`, a non-object, or a wrongly typed field never fails; that part is default.
+impl<'de> Deserialize<'de> for Styles {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        let v = Value::deserialize(d)?;
+        let flag = |k: &str| v.get(k).and_then(Value::as_bool).unwrap_or(false);
+        Ok(Styles {
+            bold: flag("bold"),
+            italic: flag("italic"),
+            underline: flag("underline"),
+            strike: flag("strike"),
+            code: flag("code"),
+            comment: v.get("comment").and_then(Value::as_str).map(str::to_owned),
+        })
+    }
 }
 
 #[derive(Debug, Clone, Deserialize, PartialEq)]
@@ -176,6 +191,34 @@ mod tests {
             other => panic!("unexpected {other:?}"),
         }
         assert!(matches!(&got[3], Inline::PageLink { props } if props.tab_id.is_empty()));
+    }
+
+    #[test]
+    fn bad_styles_keep_text() {
+        let v = json!([
+            {"type":"text","text":"a","styles":null},
+            {"type":"text","text":"b","styles":{"bold":"x","italic":true}},
+            {"type":"text","text":"c"},
+            {"type":"link","href":"h","content":[{"text":"d","styles":null},{"text":"e","styles":{"bold":"x"}}]}
+        ]);
+        let got = parse_inline(&v);
+        assert_eq!(got.len(), 4);
+        assert!(
+            matches!(&got[0], Inline::Text { text, styles } if text == "a" && *styles == Styles::default())
+        );
+        assert!(
+            matches!(&got[1], Inline::Text { text, styles } if text == "b" && !styles.bold && styles.italic)
+        );
+        assert!(matches!(&got[2], Inline::Text { text, .. } if text == "c"));
+        match &got[3] {
+            Inline::Link { content, .. } => {
+                assert_eq!(
+                    content.iter().map(|r| r.text.as_str()).collect::<String>(),
+                    "de"
+                );
+            }
+            other => panic!("unexpected {other:?}"),
+        }
     }
 
     #[test]

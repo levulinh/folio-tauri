@@ -9,6 +9,7 @@ pub mod order;
 pub mod pages;
 pub(crate) mod search;
 pub mod tabs;
+pub mod text;
 pub mod time;
 
 pub use db::Store;
