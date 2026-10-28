@@ -11,7 +11,7 @@ const TEXT_INPUT_TYPES = new Set(["text", "search", "url", "tel", "email"]);
  * Editor focus: exactly one ProseMirror step, skipped while composing. Text field: `execCommand`
  * (shares WebKit's undo stack, so stale editor steps may sit on top; not strictly "that field
  * only"). Anything else: nothing. The custom items are always enabled and have no "Undo Typing"
- * title. Windows/Linux: a field may see both its own ⌘Z and the menu (double step risk), and
+ * title. Windows/Linux: a field may see both its own Ctrl+Z and the menu (double step risk), and
  * Ctrl+Y has no accelerator.
  */
 export function routeMenuHistory(kind: "undo" | "redo"): void {

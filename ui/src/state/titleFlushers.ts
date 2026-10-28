@@ -12,8 +12,3 @@ export function removeTitleFlusher(flush: () => Promise<void>): void {
 export function titleFlushers(): Array<() => Promise<void>> {
   return [...flushers];
 }
-
-/** Test-only accessor (re-exported by `quitFlush.testing`). */
-export function titleFlusherCount(): number {
-  return flushers.size;
-}
