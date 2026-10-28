@@ -25,6 +25,7 @@ import { SlashMenuComponent } from "./SlashMenuComponent";
 import { slashComposingGuard } from "./slashComposingGuard";
 import { filterSlashItems, slashItems } from "./slashMenu";
 import { FolioTableHandles } from "./table/FolioTableHandles";
+import { tableKeysExtension } from "./table/tableKeys";
 import { ToolbarVisibilitySync } from "./toolbar/ToolbarVisibilitySync";
 import { FolioFormattingToolbar } from "./toolbar/FolioFormattingToolbar";
 import "./editor.css";
@@ -64,7 +65,7 @@ function EditorInstance({ loaded }: { loaded: Loaded }) {
     trailingBlock: true,
     tables: { headers: true, splitCells: false, cellBackgroundColor: false, cellTextColor: false },
     animations: false,
-    extensions: [findExtension(), slashComposingGuard()],
+    extensions: [findExtension(), slashComposingGuard(), tableKeysExtension()],
   });
   useEffect(installNativeHistoryGuard, []);
   useFocusAfterDrop(editor);

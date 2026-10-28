@@ -185,3 +185,153 @@ test("one undo reverts an added row and the store matches", async ({ page }) => 
   await expect(rows(page)).toHaveCount(2);
   expect(await storedTable(page)).toMatchObject({ rows: 2, cols: 3 });
 });
+
+/** [row, col] of the table cell holding the caret, or null when the caret is outside any cell. */
+async function caretCell(page: Page): Promise<[number, number] | null> {
+  return page.evaluate(() => {
+    const node = document.getSelection()?.anchorNode;
+    const el = node instanceof Element ? node : node?.parentElement;
+    const td = el?.closest("td, th");
+    const tr = td?.closest("tr");
+    if (!td || !tr) return null;
+    return [Array.from(tr.parentElement!.children).indexOf(tr), Array.from(tr.children).indexOf(td)] as [number, number];
+  });
+}
+
+const cellTexts = (page: Page) => rows(page).evaluateAll((trs) => trs.map((tr) => Array.from(tr.children).map((c) => c.textContent ?? "")));
+
+/** The stored text of every cell, row by row. */
+async function storedCells(page: Page): Promise<string[][]> {
+  return page.evaluate(async () => {
+    const fake = window.__folioFake!;
+    const pages = await fake.pagesList();
+    const tabs = await fake.tabsList(pages[0]!.id);
+    const tree = await fake.tabLoad(tabs[0]!.id);
+    const node = tree.find((n) => n.type === "table")!;
+    const content = node.content as { rows: { cells: unknown[] }[] };
+    const text = (cell: unknown): string => {
+      const runs = Array.isArray(cell) ? cell : ((cell as { content?: unknown[] }).content ?? []);
+      return (runs as { text?: string }[]).map((r) => r.text ?? "").join("");
+    };
+    return content.rows.map((r) => r.cells.map(text));
+  });
+}
+
+async function focusCell(page: Page, r: number, c: number) {
+  await cell(page, r, c).click();
+  expect(await caretCell(page)).toEqual([r, c]);
+}
+
+test("tab walks the cells row by row and shift-tab walks back", async ({ page }) => {
+  await insertTable(page);
+  await focusCell(page, 0, 0);
+  for (const word of ["a", "b", "c", "d", "e"]) {
+    await page.keyboard.type(word);
+    await page.keyboard.press("Tab");
+  }
+  expect(await caretCell(page)).toEqual([1, 2]);
+  await page.keyboard.press("Shift+Tab");
+  expect(await caretCell(page)).toEqual([1, 1]);
+  await page.keyboard.press("Shift+Tab");
+  await page.keyboard.press("Shift+Tab");
+  await page.keyboard.press("Shift+Tab");
+  await page.keyboard.press("Shift+Tab");
+  expect(await caretCell(page)).toEqual([0, 0]);
+  await page.keyboard.press("Shift+Tab"); // first cell: nothing
+  expect(await caretCell(page)).toEqual([0, 0]);
+  await expect(rows(page)).toHaveCount(2);
+  await reopen(page);
+  expect(await storedCells(page)).toEqual([["a", "b", "c"], ["d", "e", ""]]);
+  expect(await cellTexts(page)).toEqual([["a", "b", "c"], ["d", "e", ""]]);
+});
+
+test("tab in the last cell adds a row, and one undo removes it", async ({ page }) => {
+  await insertTable(page);
+  await focusCell(page, 1, 2);
+  await page.keyboard.type("z");
+  await settle(page);
+  await page.keyboard.press("Tab");
+  await expect(rows(page)).toHaveCount(3);
+  expect(await caretCell(page)).toEqual([2, 0]);
+  await page.keyboard.type("n");
+  await settle(page);
+  await reopen(page);
+  expect(await storedTable(page)).toMatchObject({ rows: 3, cols: 3 });
+  expect((await storedCells(page))[2]).toEqual(["n", "", ""]);
+
+  await focusCell(page, 2, 2);
+  await page.keyboard.press("Tab"); // a second added row, the one to undo
+  await expect(rows(page)).toHaveCount(4);
+  await settle(page);
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect(rows(page)).toHaveCount(3); // the row and the caret move are one step
+  await settle(page);
+  expect(await storedTable(page)).toMatchObject({ rows: 3, cols: 3 });
+  await reopen(page);
+  await expect(rows(page)).toHaveCount(3);
+});
+
+test("a single undo after adding a row with Tab removes it from a fresh table", async ({ page }) => {
+  await insertTable(page);
+  await settle(page);
+  await focusCell(page, 1, 2);
+  await page.keyboard.press("Tab");
+  await expect(rows(page)).toHaveCount(3);
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect(rows(page)).toHaveCount(2);
+  expect(await caretCell(page)).toEqual([1, 2]);
+});
+
+test("enter moves to the cell below and adds a row from the last row", async ({ page }) => {
+  await insertTable(page);
+  await focusCell(page, 0, 1);
+  await page.keyboard.type("x");
+  await page.keyboard.press("Enter");
+  expect(await caretCell(page)).toEqual([1, 1]);
+  await page.keyboard.type("y");
+  await page.keyboard.press("Enter");
+  await expect(rows(page)).toHaveCount(3);
+  expect(await caretCell(page)).toEqual([2, 1]);
+  await page.keyboard.type("w");
+  await reopen(page);
+  expect(await storedTable(page)).toMatchObject({ rows: 3, cols: 3 });
+  expect(await storedCells(page)).toEqual([["", "x", ""], ["", "y", ""], ["", "w", ""]]);
+});
+
+test("shift-enter inserts a line break inside the cell", async ({ page }) => {
+  await insertTable(page);
+  await focusCell(page, 0, 0);
+  await page.keyboard.type("one");
+  await page.keyboard.press("Shift+Enter");
+  await page.keyboard.type("two");
+  expect(await caretCell(page)).toEqual([0, 0]);
+  await expect(rows(page)).toHaveCount(2);
+  await reopen(page);
+  expect((await storedCells(page))[0]![0]).toBe("one\ntwo");
+});
+
+test("table as last block keeps a paragraph after it", async ({ page }) => {
+  await insertTable(page);
+  await page.keyboard.type("x");
+  const trailing = editorOf(page).locator(".bn-trailing-block"); // BlockNote's clickable area below the last block
+  const tableBox = (await table(page).boundingBox())!;
+  const box = (await trailing.boundingBox())!;
+  expect(box.y).toBeGreaterThanOrEqual(tableBox.y + tableBox.height - 1); // it sits below the table
+  await page.mouse.click(box.x + 20, box.y + box.height / 2);
+  const where = await page.evaluate(() => {
+    const node = document.getSelection()?.anchorNode;
+    const el = node instanceof Element ? node : node?.parentElement;
+    return { inCell: !!el?.closest("td, th"), inParagraph: !!el?.closest('[data-content-type="paragraph"]') };
+  });
+  expect(where).toEqual({ inCell: false, inParagraph: true });
+  await page.keyboard.type("below");
+  await reopen(page);
+  const stored = await page.evaluate(async () => {
+    const fake = window.__folioFake!;
+    const pages = await fake.pagesList();
+    const tabs = await fake.tabsList(pages[0]!.id);
+    return (await fake.tabLoad(tabs[0]!.id)).map((n) => n.type);
+  });
+  expect(stored).toEqual(["table", "paragraph"]);
+  await expect(editorOf(page).locator('[data-content-type="paragraph"]').last()).toHaveText("below");
+});
