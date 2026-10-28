@@ -4,7 +4,7 @@
 
 1. Mở Terminal tại thư mục gốc của repo (`folio-tauri`).
 2. Chạy `npm install` (lần đầu), sau đó `npm run dev`. Lần đầu build Rust mất vài phút; cửa sổ Folio tự mở.
-3. Dữ liệu nằm ở `~/Library/Application Support/io.folio.app/folio.sqlite`. Muốn bắt đầu lại từ trống: thoát Folio rồi xoá file đó (cùng `folio.sqlite-wal`, `folio.sqlite-shm` nếu có).
+3. Khi chạy `npm run dev`, dữ liệu nằm ở `~/Library/Application Support/io.folio.app/dev/folio.sqlite` (bản cài đặt thật dùng thư mục cha, không bị đụng tới). Muốn bắt đầu lại từ trống: thoát Folio rồi xoá file đó (cùng `folio.sqlite-wal`, `folio.sqlite-shm` nếu có).
 
 Đánh dấu `[x]` khi đạt. Mục nào hỏng: ghi ngay sau mục đó điều đã thấy.
 
@@ -93,3 +93,13 @@ Với mỗi chỗ dưới đây: A ☐  B ☐
 - [ ] Gõ `Đà Nẵng` rồi ⌘Z: ghi lại ⌘Z xoá cả chữ hay từng dấu: ______
 
 Kết luận: [ ] Đạt hết  [ ] Có mục hỏng (ghi số mục): ______
+
+## 8. Tình huống khó (bổ sung sau rà soát cuối Giai đoạn 1)
+
+- [ ] Gõ tiếng Việt trong editor khi thanh ⌘F đang mở và đang tô sáng kết quả: mở trang có chữ `nang`, bấm ⌘F, gõ `nang` (có tô sáng), rồi bấm vào editor và gõ `Đà Nẵng` bằng Telex. Mong đợi: không mất chữ, không lặp chữ, tô sáng không làm hỏng chữ đang gõ dở, con trỏ không nhảy. Ghi lại điều đã thấy: ______
+- [ ] Telex/EVKey khi đổi tên trang ngay trên thanh bên: nút "…" → Đổi tên, gõ `nguwowif` (Telex) rồi bấm Enter để chốt chữ. Mong đợi: ô đổi tên vẫn mở, chữ được chốt thành `người`; Enter lần nữa (khi không còn chữ gõ dở) mới kết thúc đổi tên. Làm tiếp: gõ dở một chữ rồi bấm Esc → Esc chỉ huỷ chữ gõ dở, ô đổi tên vẫn mở; Esc lần nữa mới huỷ đổi tên (tên cũ được giữ). Làm với cả Telex của macOS và EVKey/OpenKey.
+- [ ] Bấm chuột vào menu **Sửa → Hoàn tác** và **Sửa → Làm lại** khi con trỏ đang ở trong editor (gõ vài chữ trước). Ghi lại nó có hoàn tác/làm lại đúng không (cùng kết quả với ⌘Z / ⇧⌘Z?): ______
+- [ ] Tạo trang A với vài block (đoạn văn, danh sách lồng nhau, tiêu đề). Chọn vài block, ⌘C, mở trang B (trang trống), ⌘V. Thoát Folio (⌘Q), mở lại: trang A và trang B đều nguyên vẹn, không mất hay lặp block nào, thứ tự và thụt lề đúng.
+- [ ] Gõ chữ vào một trang rồi xoá trang đó ngay (nút "…" → Xoá → xác nhận) trước khi kịp thấy "đã lưu". Mong đợi: không có thông báo lỗi nào hiện lặp đi lặp lại, các trang còn lại vẫn mở và gõ được, app dùng bình thường.
+- [ ] Dán khoảng 500 dòng văn bản (ví dụ `seq 1 500` trong Terminal rồi chép kết quả) vào một trang trống. Mong đợi: editor vẫn mượt (gõ thêm, cuộn không giật), chỉ báo lưu về "đã lưu"; thoát và mở lại vẫn còn đủ 500 dòng.
+- [ ] Đăng xuất macOS (menu Apple → Đăng xuất) hoặc khởi động lại máy khi Folio đang mở và vừa gõ chữ. Ghi lại macOS hiện gì: ______ (hiện tại Folio sẽ khiến macOS hiện "đã chặn đăng xuất" — đã biết, sẽ sửa ở Giai đoạn 8). Sau đó đăng nhập lại, mở Folio: chữ vừa gõ vẫn còn.
