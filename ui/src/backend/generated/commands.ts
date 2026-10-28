@@ -1,0 +1,15 @@
+export const Commands = {
+  pagesList: "pages_list",
+  pageCreate: "page_create",
+  pageRename: "page_rename",
+  pageDelete: "page_delete",
+  tabsList: "tabs_list",
+  tabCreate: "tab_create",
+  tabRename: "tab_rename",
+  tabMove: "tab_move",
+  tabDelete: "tab_delete",
+  tabLoad: "tab_load",
+  tabApply: "tab_apply",
+  search: "search",
+  quitReady: "quit_ready",
+} as const;

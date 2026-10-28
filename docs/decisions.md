@@ -61,3 +61,9 @@ Status: decided (2026-10-28)
 - Query tokens: `fold(query)` split on every non-alphanumeric char (like the unicode61 tokenizer, so `e-mail`, `don't`, `3.14` become separate AND-ed terms; this also removes all FTS5 syntax), empties dropped; none left (or `limit == 0`) → `[]`. FTS expression: `text : ("a"* "b"*)`. AND is per FTS row (one title or one block), not across blocks of a page.
 - Ranking: pages with a title hit first, then lowest `bm25` over all their matching rows, then page title, then page id (deterministic). `limit` caps pages.
 - Snippet: original plain text of the best-ranked matching block, 120 chars max centred on the first word-start match of the first token (falls back to any substring, then 0); cut ends get `…` (counted within the 120). Title-only hits use the page's first non-empty block (tabs by order_key, blocks depth-first), cut to 120 chars with a trailing `…` when longer; `""` if the page has none.
+
+## D-010 Command plumbing and quit details (Phase 1 Task 10)
+Status: decided (2026-10-28)
+- One `command_list!` macro in `commands.rs` feeds both `COMMANDS` (via `stringify!`) and `generate_handler!`, so the names cannot drift from the functions; `commands_match_handler` also compares against a second literal list.
+- `blocking` maps a poisoned store mutex to `ErrorPayload { code: "db", message: "store lock poisoned" }` and a failed blocking task to code `db`.
+- Quit: the 3 s timeout runs on a plain `std::thread`; `quit_ready` sets `quitting` before `app.exit(0)` so the final `ExitRequested` is never prevented. `CloseRequested` is always prevented (the flow either starts or is already running).
