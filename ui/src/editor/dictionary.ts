@@ -36,9 +36,15 @@ export const dictionary = {
   drag_handle: {
     ...viLocale.drag_handle,
     delete_menuitem: "Xoá",
+    header_row_menuitem: "Hàng tiêu đề",
+    header_column_menuitem: "Cột tiêu đề",
   },
   table_handle: {
     ...viLocale.table_handle,
+    add_above_menuitem: "Thêm hàng phía trên",
+    add_below_menuitem: "Thêm hàng phía dưới",
+    add_left_menuitem: "Thêm cột bên trái",
+    add_right_menuitem: "Thêm cột bên phải",
     delete_column_menuitem: "Xoá cột",
     delete_row_menuitem: "Xoá hàng",
   },

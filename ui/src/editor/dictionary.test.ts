@@ -2,7 +2,7 @@ import { en } from "@blocknote/core/locales";
 import { expect, it } from "vitest";
 import { dictionary } from "./dictionary";
 
-const SHOWN_SECTIONS = ["formatting_toolbar", "link_toolbar", "side_menu", "drag_handle", "suggestion_menu"] as const;
+const SHOWN_SECTIONS = ["formatting_toolbar", "link_toolbar", "side_menu", "drag_handle", "table_handle", "suggestion_menu"] as const;
 /** Identical in both languages on purpose. */
 const SAME_AS_ENGLISH = new Set(["Code"]);
 /** Keyboard shortcuts ("Mod+B", "Tab", ...) and the empty string are not translated. */
@@ -41,6 +41,18 @@ it("link toolbar delete is Xoá liên kết", () => {
 
 it("drag menu delete is Xoá", () => {
   expect(dictionary.drag_handle.delete_menuitem).toBe("Xoá");
+});
+
+it("table menus are Vietnamese", () => {
+  const t = dictionary.table_handle;
+  expect(t.add_above_menuitem).toBe("Thêm hàng phía trên");
+  expect(t.add_below_menuitem).toBe("Thêm hàng phía dưới");
+  expect(t.add_left_menuitem).toBe("Thêm cột bên trái");
+  expect(t.add_right_menuitem).toBe("Thêm cột bên phải");
+  expect(t.delete_row_menuitem).toBe("Xoá hàng");
+  expect(t.delete_column_menuitem).toBe("Xoá cột");
+  expect(dictionary.drag_handle.header_row_menuitem).toBe("Hàng tiêu đề");
+  expect(dictionary.drag_handle.header_column_menuitem).toBe("Cột tiêu đề");
 });
 
 it("keeps the Folio placeholders", () => {

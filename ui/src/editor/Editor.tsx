@@ -24,6 +24,7 @@ import { useFocusAfterDrop } from "./sideMenu/useFocusAfterDrop";
 import { SlashMenuComponent } from "./SlashMenuComponent";
 import { slashComposingGuard } from "./slashComposingGuard";
 import { filterSlashItems, slashItems } from "./slashMenu";
+import { FolioTableHandles } from "./table/FolioTableHandles";
 import { ToolbarVisibilitySync } from "./toolbar/ToolbarVisibilitySync";
 import { FolioFormattingToolbar } from "./toolbar/FolioFormattingToolbar";
 import "./editor.css";
@@ -61,6 +62,7 @@ function EditorInstance({ loaded }: { loaded: Loaded }) {
     dictionary,
     initialContent: initial as never,
     trailingBlock: true,
+    tables: { headers: true, splitCells: false, cellBackgroundColor: false, cellTextColor: false },
     animations: false,
     extensions: [findExtension(), slashComposingGuard()],
   });
@@ -89,10 +91,11 @@ function EditorInstance({ loaded }: { loaded: Loaded }) {
     };
   }, [tabId, editor, storedIds, setSaveStatus]);
   return (
-    <BlockNoteView editor={editor} theme={colorScheme} formattingToolbar={false} slashMenu={false} sideMenu={false} emojiPicker={false} data-testid="editor">
+    <BlockNoteView editor={editor} theme={colorScheme} formattingToolbar={false} slashMenu={false} sideMenu={false} tableHandles={false} emojiPicker={false} data-testid="editor">
       <ToolbarVisibilitySync />
       <FormattingToolbarController formattingToolbar={FolioFormattingToolbar} />
       <SideMenuController sideMenu={FolioSideMenu} />
+      <FolioTableHandles />
       <SuggestionMenuController
         triggerCharacter="/"
         getItems={getSlashItems}
