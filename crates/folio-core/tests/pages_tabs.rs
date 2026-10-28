@@ -169,6 +169,14 @@ fn delete_tab_moves_threads() {
             [&created.page.id],
         )
         .unwrap();
+    store
+        .conn()
+        .execute(
+            "INSERT INTO search_owner (fts_rowid, kind, owner_id, page_id)
+             VALUES (last_insert_rowid(), 'block', 'blk', ?1)",
+            [&created.page.id],
+        )
+        .unwrap();
     store.delete_tab(&t2).unwrap();
     let tab_id: String = store
         .conn()

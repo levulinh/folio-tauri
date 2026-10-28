@@ -49,3 +49,9 @@ Status: decided (2026-10-28)
 - `apply`, `load_tab` and `replace_tab_blocks` return `NotFound { entity: "tab" }` for an unknown tab. `applied` = number of ops. A failed option-name lookup (database error) fails the whole `apply`.
 - `replace_tab_blocks` keeps `created_at` of ids that existed before, rejects non-UUID, duplicate or non-object-props nodes (`InvalidOp { index: 0 }`), and bumps `pages.updated_at`.
 - `load_tab` orders siblings by `order_key` (id as tiebreak); orphans go to top level with an `eprintln!`.
+
+## D-008 FTS owner side table (Phase 1 Task 8 fix)
+Status: decided (2026-10-28)
+- Spec §3.1 declares `search_fts.kind/owner_id/page_id` UNINDEXED, so `DELETE ... WHERE owner_id = ?` is a full FTS scan (measured: 500-op apply ~840 ms with 20k other FTS rows). Migration `0002_search_owner.sql` adds `search_owner(fts_rowid, kind, owner_id, page_id)` with `UNIQUE(kind, owner_id)` and an index on `page_id` (backfilled from existing rows).
+- All helpers in `search.rs` go through it and touch `search_fts` by rowid only. Anything that writes `search_fts` directly must also write `search_owner`; counts of the two tables are equal by invariant.
+- `replace_tab_blocks` returns `InvalidOp` (not a PK `Db` error) for a node id living in another tab.

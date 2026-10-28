@@ -268,7 +268,10 @@ fn move_within_same_parent_and_reupsert_in_place() {
         &[p(1, None, "a"), p(2, Some(1), "b"), p(3, Some(2), "c")],
     )
     .unwrap();
-    s.apply(&tab, &[p(1, Some(1), "a")]).unwrap_err();
+    assert!(matches!(
+        s.apply(&tab, &[p(1, Some(1), "a")]).unwrap_err(),
+        CoreError::InvalidOp { .. }
+    ));
     s.apply(&tab, &[p(1, Some(3), "a")]).unwrap();
     assert_eq!(ids(&s.load_tab(&tab).unwrap()), [id(2), id(3), id(1)]);
     s.apply(&tab, &[p(3, Some(2), "c")]).unwrap();
@@ -426,5 +429,59 @@ fn delete_page_removes_descendant_block_fts_rows() {
         1
     );
     s.delete_page(&a).unwrap();
+    assert_eq!(count(&s, "SELECT count(*) FROM search_fts"), 0);
+}
+
+#[test]
+fn replace_tab_blocks_rejects_id_from_another_tab() {
+    let (mut s, page, tab) = setup();
+    let other = s.create_tab(&page, "two").unwrap();
+    s.apply(&tab, &[p(1, None, "a")]).unwrap();
+    let node = BlockNode {
+        id: id(1),
+        r#type: "paragraph".into(),
+        props: json!({}),
+        content: None,
+        children: vec![],
+    };
+    let e = s.replace_tab_blocks(&other.id, &[node]).unwrap_err();
+    assert_eq!(invalid_index(e), 0);
+    assert_eq!(s.load_tab(&tab).unwrap().len(), 1);
+}
+
+#[test]
+fn search_owner_stays_in_sync() {
+    let (mut s, a, tab) = setup();
+    let b = s.create_page(Some(&a), None).unwrap();
+    let extra = s.create_tab(&a, "two").unwrap();
+    s.apply(
+        &tab,
+        &[p(1, None, "a"), p(2, Some(1), "b"), p(3, Some(2), "c")],
+    )
+    .unwrap();
+    s.apply(&tab, &[p(2, Some(1), "bb"), del(&[3])]).unwrap();
+    s.apply(&extra.id, &[p(10, None, "x"), p(11, Some(10), "y")])
+        .unwrap();
+    s.apply(&b.tab.id, &[p(20, None, "z")]).unwrap();
+    s.rename_page(&a, "Title").unwrap();
+    let check = |s: &Store| {
+        assert_eq!(
+            count(s, "SELECT count(*) FROM search_fts"),
+            count(s, "SELECT count(*) FROM search_owner")
+        );
+        assert_eq!(
+            count(
+                s,
+                "SELECT count(*) FROM search_owner o WHERE NOT EXISTS \
+                 (SELECT 1 FROM search_fts f WHERE f.rowid = o.fts_rowid)"
+            ),
+            0
+        );
+    };
+    check(&s);
+    s.delete_tab(&extra.id).unwrap();
+    check(&s);
+    s.delete_page(&a).unwrap();
+    check(&s);
     assert_eq!(count(&s, "SELECT count(*) FROM search_fts"), 0);
 }

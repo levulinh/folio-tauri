@@ -341,6 +341,7 @@ impl Store {
             let rows = stmt.query_map([tab_id], |r| Ok((r.get(0)?, r.get(1)?)))?;
             rows.collect::<rusqlite::Result<_>>()?
         };
+        check_ids_free(&tx, tab_id, tree)?;
         let old_ids: Vec<String> = created.keys().cloned().collect();
         unindex_owners(&tx, "block", &old_ids)?;
         tx.execute("DELETE FROM blocks WHERE tab_id = ?1", [tab_id])?;
@@ -350,6 +351,22 @@ impl Store {
         tx.commit()?;
         Ok(())
     }
+}
+
+/// No node may carry the id of a block that lives in another tab.
+fn check_ids_free(tx: &Transaction, tab_id: &str, nodes: &[BlockNode]) -> Result<()> {
+    for node in nodes {
+        let elsewhere: bool = tx.query_row(
+            "SELECT EXISTS(SELECT 1 FROM blocks WHERE id = ?1 AND tab_id <> ?2)",
+            params![node.id, tab_id],
+            |r| r.get(0),
+        )?;
+        if elsewhere {
+            return Err(invalid(0, "block belongs to another tab"));
+        }
+        check_ids_free(tx, tab_id, &node.children)?;
+    }
+    Ok(())
 }
 
 fn insert_level(

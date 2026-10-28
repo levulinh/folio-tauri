@@ -5,7 +5,10 @@ use rusqlite::Connection;
 use crate::error::Result;
 
 /// Forward-only migrations; migration `n` (1-based) sets `user_version = n`.
-const MIGRATIONS: &[&str] = &[include_str!("migrations/0001_init.sql")];
+const MIGRATIONS: &[&str] = &[
+    include_str!("migrations/0001_init.sql"),
+    include_str!("migrations/0002_search_owner.sql"),
+];
 
 pub struct Store {
     conn: Connection,

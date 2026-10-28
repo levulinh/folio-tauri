@@ -14,7 +14,7 @@ fn user_version(store: &Store) -> i64 {
 #[test]
 fn open_creates_schema() {
     let store = Store::open_in_memory().unwrap();
-    assert_eq!(user_version(&store), 1);
+    assert_eq!(user_version(&store), 2);
     for table in [
         "pages",
         "tabs",
@@ -26,6 +26,7 @@ fn open_creates_schema() {
         "page_versions",
         "settings",
         "search_fts",
+        "search_owner",
     ] {
         let n: i64 = store
             .conn()
@@ -45,10 +46,10 @@ fn open_twice_is_idempotent() {
     let db = dir.path().join("folio.db");
     let assets = dir.path().join("assets");
     let first = Store::open(&db, &assets).unwrap();
-    assert_eq!(user_version(&first), 1);
+    assert_eq!(user_version(&first), 2);
     drop(first);
     let second = Store::open(&db, &assets).unwrap();
-    assert_eq!(user_version(&second), 1);
+    assert_eq!(user_version(&second), 2);
     assert!(assets.is_dir());
 }
 
