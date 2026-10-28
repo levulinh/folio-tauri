@@ -84,10 +84,9 @@ describe("Sidebar search clear", () => {
     });
     expect(screen.queryByTestId("tree")).toBeNull();
 
-    // WebKit's clear button empties the field and fires `input` + `search` events, no key events.
+    // WebKit's clear button empties the field through an `input` event, no key events.
     await act(async () => {
       fireEvent.change(input(), { target: { value: "" } });
-      fireEvent(input(), new Event("search", { bubbles: true }));
       await vi.advanceTimersByTimeAsync(300);
     });
     expect(screen.getByTestId("tree")).toBeTruthy();
