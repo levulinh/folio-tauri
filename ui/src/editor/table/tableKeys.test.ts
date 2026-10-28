@@ -74,6 +74,10 @@ function press(key: string, init: KeyboardEventInit = {}): boolean {
   return !!view.someProp("handleKeyDown", (f) => f(view, event));
 }
 
+const cellContent = (row: number, col: number) => {
+  const cell = (editor.document[0]!.content as { rows: { cells: { content: { text?: string }[] }[] }[] }).rows[row]!.cells[col]!;
+  return cell.content.map((c) => c.text ?? "").join("");
+};
 const rowCount = () => (editor.document[0]!.content as { rows: unknown[] }).rows.length;
 const setComposing = (on: boolean) => {
   (editor.prosemirrorView as unknown as { input: { composing: boolean } }).input.composing = on;
@@ -139,12 +143,15 @@ describe("tableKeysExtension", () => {
     expect(caretCell()).toEqual([0, 1]);
   });
 
-  it("enter, shift-enter and a keyCode-229 key do nothing while composing", () => {
-    caretAt(1, 2);
+  it("enter, shift-enter, shift-tab and a keyCode-229 key do nothing while composing", () => {
+    caretAt(1, 2, 2);
     setComposing(true);
     press("Enter");
     press("Enter", { shiftKey: true });
+    press("Tab", { shiftKey: true });
     expect(rowCount()).toBe(2);
+    expect(caretCell()).toEqual([1, 2]);
+    expect(cellContent(1, 2)).toBe("r1c2"); // no line break went in
     setComposing(false);
     press("Enter", { keyCode: 229 });
     press("Tab", { isComposing: true });
@@ -152,9 +159,34 @@ describe("tableKeysExtension", () => {
     expect(caretCell()).toEqual([1, 2]);
   });
 
+  it("appending a row keeps the column widths and the header row", () => {
+    editor.replaceBlocks(editor.document, [
+      {
+        id: "w",
+        type: "table",
+        content: {
+          type: "tableContent",
+          columnWidths: [100, 150, undefined],
+          headerRows: 1,
+          rows: [0, 1].map((r) => ({ cells: [0, 1, 2].map((c) => cellText(r, c)) })),
+        },
+      },
+    ]);
+    caretAt(1, 2);
+    press("Tab");
+    const content = editor.document[0]!.content as { rows: unknown[]; columnWidths: unknown[]; headerRows?: number };
+    expect(content.rows).toHaveLength(3);
+    expect(content.columnWidths).toEqual([100, 150, undefined]);
+    expect(content.headerRows).toBe(1);
+  });
+
   it("keys outside a table are left alone", () => {
     editor.setTextCursorPosition("after", "end");
-    press("Tab");
-    expect(rowCount()).toBe(2); // a Tab in the paragraph after the table adds no row
+    // BlockNote itself handles Tab in a paragraph (indent), so ask this extension's own shortcuts.
+    const shortcuts = tableKeysExtension()({ editor } as never).keyboardShortcuts!;
+    for (const key of ["Tab", "Shift-Tab", "Enter", "Shift-Enter"] as const) {
+      expect(shortcuts[key]({ editor: editor as never, event: new KeyboardEvent("keydown", { key: "Tab" }) })).toBe(false);
+    }
+    expect(rowCount()).toBe(2);
   });
 });
