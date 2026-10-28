@@ -1,7 +1,11 @@
+/* Content column: 900px of text between 72px gutters (the block side menu lives in the left one).
+   border-box + width 100% so it also shrinks with a narrow window; max-width = 900 + 2 * 72. */
 .page {
-  max-width: 720px;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 1044px;
   margin: 0 auto;
-  padding: 48px 24px;
+  padding: 48px 72px 160px;
 }
 
 .title {

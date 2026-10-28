@@ -140,3 +140,6 @@ Status: decided (2026-10-29)
 ## D-018 Debug builds use their own data directory (Phase 1 final review)
 Status: decided (2026-10-29)
 - `cfg!(debug_assertions)` builds (`npm run dev`, `cargo run`) store the database and assets under `<app_data_dir>/dev/`; release builds use `<app_data_dir>/`. A developer run can therefore never write, migrate or corrupt the installed app's `folio.sqlite`. Consequence: notes made in dev mode are not visible in the installed app and vice versa.
+
+## D-019 Page column: border-box with width 100%, max-width 1044px (Phase 2 Task 1)
+The content column is 900 px of text between 72 px gutters. `.page` is `box-sizing: border-box; width: 100%; max-width: 1044px` (900 + 2 x 72) instead of content-box `max-width: 900px`: inside the flex-column `<main>`, `margin: 0 auto` made a content-box block shrink to its content (title was 366 px wide), and border-box + `width: 100%` also lets the column shrink with a narrow window. Gutter stays 72 px; BlockNote's side menu fits at a 900 px viewport. The editor has no background of its own (`editor.css` overrides BlockNote's `--bn-colors-editor-*` on `.bn-container.bn-root`).

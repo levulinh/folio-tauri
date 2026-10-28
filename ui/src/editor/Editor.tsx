@@ -11,6 +11,7 @@ import { toEditorBlocks } from "./convert";
 import { dictionary } from "./dictionary";
 import { findExtension } from "./find/findPlugin";
 import { schema } from "./schema";
+import "./editor.css";
 
 const DARK_QUERY = "(prefers-color-scheme: dark)";
 
