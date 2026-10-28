@@ -1,6 +1,6 @@
 import { createExtension, type BlockNoteEditor } from "@blocknote/core";
 import { TextSelection, type EditorState } from "prosemirror-state";
-import type { Node } from "prosemirror-model";
+import type { Node, ResolvedPos } from "prosemirror-model";
 import { addRowAfter } from "prosemirror-tables";
 
 /**
@@ -11,6 +11,9 @@ import { addRowAfter } from "prosemirror-tables";
  *   - swallows Tab, Shift-Tab, Enter and Shift-Enter in a cell while composing, so the key the
  *     IME consumed does not also move the caret or add a row;
  *   - appends a row for Tab in the last cell and Enter in the last row, and moves into it.
+ *   - keeps Shift-Home / Shift-End (and Meta-Shift-ArrowLeft / ArrowRight, the macOS line
+ *     selection) inside the cell: WebKit would otherwise extend the selection over the
+ *     neighbouring cells, and one bold would format them all.
  * Everything else is left to BlockNote (it returns false).
  */
 
@@ -24,6 +27,14 @@ interface CellPosition {
 }
 
 const CELL_TYPES = new Set(["tableCell", "tableHeader"]);
+
+/** Depth of the table cell around a resolved position, or null outside a table cell. */
+function cellDepthOf($pos: ResolvedPos): number | null {
+  for (let depth = $pos.depth; depth >= 2; depth--) {
+    if (CELL_TYPES.has($pos.node(depth).type.name)) return depth;
+  }
+  return null;
+}
 
 /** Where the selection head sits in a table: its row and column and the table's size. */
 function cellPosition(state: EditorState): CellPosition | null {
@@ -84,6 +95,25 @@ function inCell(handler: (editor: BlockNoteEditor, at: CellPosition) => boolean)
   };
 }
 
+/**
+ * Extends the selection from its anchor to the start or end of the cell text the head is in.
+ * Only for a text selection whose anchor sits in the same cell; anything else is left alone.
+ */
+function selectWithinCell(edge: "start" | "end"): Shortcut {
+  return inCell((editor) => {
+    const view = editor.prosemirrorView;
+    if (!view) return false;
+    const { selection, doc } = view.state;
+    if (!(selection instanceof TextSelection)) return false;
+    const { $head, $anchor } = selection;
+    const cellDepth = cellDepthOf($head);
+    if (cellDepth === null || $anchor.depth < cellDepth || $anchor.before(cellDepth) !== $head.before(cellDepth)) return false;
+    const target = edge === "start" ? $head.start() : $head.end();
+    view.dispatch(view.state.tr.setSelection(TextSelection.create(doc, selection.anchor, target)).scrollIntoView());
+    return true;
+  });
+}
+
 export const tableKeysExtension = createExtension(() => ({
   key: "tableKeys",
   keyboardShortcuts: {
@@ -97,5 +127,9 @@ export const tableKeysExtension = createExtension(() => ({
       return addRowAndEnter(editor, at, at.col);
     }),
     "Shift-Enter": inCell(() => false),
+    "Shift-Home": selectWithinCell("start"),
+    "Shift-End": selectWithinCell("end"),
+    "Meta-Shift-ArrowLeft": selectWithinCell("start"),
+    "Meta-Shift-ArrowRight": selectWithinCell("end"),
   },
 }));

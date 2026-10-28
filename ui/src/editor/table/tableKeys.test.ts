@@ -180,6 +180,52 @@ describe("tableKeysExtension", () => {
     expect(content.headerRows).toBe(1);
   });
 
+  describe("selection stays inside the cell", () => {
+    const selectedText = () => {
+      const { from, to } = editor.prosemirrorState.selection;
+      return editor.prosemirrorState.doc.textBetween(from, to, "\n");
+    };
+    const keys: [string, string, KeyboardEventInit][] = [
+      ["Shift-Home", "Home", { shiftKey: true }],
+      ["Meta-Shift-ArrowLeft", "ArrowLeft", { shiftKey: true, metaKey: true }],
+    ];
+    for (const [name, key, init] of keys) {
+      it(`${name} selects back to the start of the cell only`, () => {
+        caretAt(0, 1, 2); // after "r0", before "c1"
+        const before = editor.prosemirrorState.selection.anchor;
+        expect(press(key, init)).toBe(true);
+        expect(selectedText()).toBe("r0");
+        expect(editor.prosemirrorState.selection.anchor).toBe(before);
+        expect(editor.prosemirrorState.selection.head).toBe(cellStart(0, 1));
+      });
+    }
+    const endKeys: [string, string, KeyboardEventInit][] = [
+      ["Shift-End", "End", { shiftKey: true }],
+      ["Meta-Shift-ArrowRight", "ArrowRight", { shiftKey: true, metaKey: true }],
+    ];
+    for (const [name, key, init] of endKeys) {
+      it(`${name} selects forward to the end of the cell only`, () => {
+        caretAt(0, 1, 2);
+        expect(press(key, init)).toBe(true);
+        expect(selectedText()).toBe("c1");
+        expect(editor.prosemirrorState.selection.head).toBe(cellStart(0, 1) + 4);
+      });
+    }
+
+    it("does nothing while composing and outside tables", () => {
+      caretAt(0, 1, 2);
+      setComposing(true);
+      expect(press("Home", { shiftKey: true })).toBe(true); // swallowed
+      expect(editor.prosemirrorState.selection.empty).toBe(true);
+      setComposing(false);
+      editor.setTextCursorPosition("after", "end");
+      const shortcuts = tableKeysExtension()({ editor } as never).keyboardShortcuts!;
+      for (const key of ["Shift-Home", "Shift-End", "Meta-Shift-ArrowLeft", "Meta-Shift-ArrowRight"] as const) {
+        expect(shortcuts[key]({ editor: editor as never, event: new KeyboardEvent("keydown", { key: "Home" }) })).toBe(false);
+      }
+    });
+  });
+
   it("keys outside a table are left alone", () => {
     editor.setTextCursorPosition("after", "end");
     // BlockNote itself handles Tab in a paragraph (indent), so ask this extension's own shortcuts.
