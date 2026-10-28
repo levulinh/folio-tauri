@@ -147,3 +147,10 @@ Status: accepted. `theme.css` already sets global `box-sizing: border-box`, so t
 
 ## D-020 E2E runs on its own port with the fake backend (Phase 2 Task 1 fix)
 `playwright.config.ts` starts `npm run dev:e2e` (`VITE_BACKEND=fake vite --port 5199 --strictPort`) and never reuses a running server unless `E2E_REUSE_SERVER=1`. A developer's `npm run dev` (real backend, port 5173) previously got reused and broke every spec. Status: accepted.
+
+## D-021 Formatting toolbar: own show rule, synced into BlockNote's store (Phase 2 Task 2)
+BlockNote 0.56's `FormattingToolbarController` takes no show condition; its extension opens the toolbar for any non-empty selection that contains no code block. Folio's rule is `shouldShowToolbar` (`ui/src/editor/toolbar/toolbarVisibility.ts`): hidden for an empty selection, during IME composition (`view.composing`) and when the selection lies entirely in code blocks; shown when it spans a paragraph and a code block. `ToolbarVisibilitySync` (renders nothing) sets the extension's store to that rule after BlockNote's own listeners (change, selection, pointer-up; it stays out of mouse drags), and `FolioFormattingToolbar` renders `null` when the rule says no. The toolbar has six buttons (bold, italic, underline, strike, code, link); the Comment button of tech spec §5.14 arrives with Phase 6.
+- BlockNote's `codeBlock` has no inline styles, so ⌘B/I/U inside a code block already do nothing; no keymap guard added (e2e asserts it). In a mixed selection formatting skips the code block.
+- BlockNote's toolbar components forward no props, so `data-testid`s (`fmt-toolbar`, `fmt-bold` ... `fmt-link`) are set on their DOM nodes in an effect.
+- The composing test forces `view.composing` by defining a getter on the view instance (jsdom cannot start a real composition) and removes it afterwards.
+Status: accepted.

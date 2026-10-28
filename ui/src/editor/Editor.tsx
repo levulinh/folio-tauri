@@ -1,5 +1,5 @@
 import { BlockNoteView } from "@blocknote/mantine";
-import { useCreateBlockNote } from "@blocknote/react";
+import { FormattingToolbarController, useCreateBlockNote } from "@blocknote/react";
 import type { PartialBlock } from "@blocknote/core";
 import { useEffect, useState } from "react";
 import { backend } from "../backend";
@@ -11,6 +11,8 @@ import { toEditorBlocks } from "./convert";
 import { dictionary } from "./dictionary";
 import { findExtension } from "./find/findPlugin";
 import { schema } from "./schema";
+import { ToolbarVisibilitySync } from "./toolbar/ToolbarVisibilitySync";
+import { FolioFormattingToolbar } from "./toolbar/FolioFormattingToolbar";
 import "./editor.css";
 
 const DARK_QUERY = "(prefers-color-scheme: dark)";
@@ -63,7 +65,12 @@ function EditorInstance({ loaded }: { loaded: Loaded }) {
       if (pipeline.status() !== "error") setSaveStatus("saved"); // never hide a pending error
     };
   }, [tabId, editor, storedIds, setSaveStatus]);
-  return <BlockNoteView editor={editor} theme={colorScheme} data-testid="editor" />;
+  return (
+    <BlockNoteView editor={editor} theme={colorScheme} formattingToolbar={false} data-testid="editor">
+      <ToolbarVisibilitySync />
+      <FormattingToolbarController formattingToolbar={FolioFormattingToolbar} />
+    </BlockNoteView>
+  );
 }
 
 async function loadTab(tabId: string): Promise<Loaded> {
