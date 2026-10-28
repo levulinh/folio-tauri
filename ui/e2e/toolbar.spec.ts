@@ -177,3 +177,16 @@ test("hovering the bold button shows the Vietnamese tooltip", async ({ page }) =
   await toolbar(page).getByTestId("fmt-bold").hover();
   await expect(page.getByRole("tooltip")).toContainText("Đậm");
 });
+
+test("toolbar sync recovers after a cancelled pointer", async ({ page }) => {
+  await firstLine(page).click();
+  await page.keyboard.type("xin chào");
+  // A pointer that goes down in the editor and is cancelled (no pointerup) must not freeze the sync.
+  await page.evaluate(() => {
+    const dom = document.querySelector('[data-testid="editor"] .ProseMirror')!;
+    dom.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, pointerId: 7 }));
+    dom.dispatchEvent(new PointerEvent("pointercancel", { bubbles: true, pointerId: 7 }));
+  });
+  await selectLine(page);
+  await expect(toolbar(page)).toBeVisible();
+});

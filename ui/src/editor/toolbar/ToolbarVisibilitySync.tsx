@@ -9,7 +9,7 @@ import { shouldShowToolbar } from "./toolbarVisibility";
  * that touches a code block. Ours is `shouldShowToolbar`: a selection that spans a paragraph and
  * a code block shows the toolbar, and a running IME composition hides it. This renders nothing and
  * keeps BlockNote's open/closed store in line with our rule on change, selection, focus,
- * pointer-up and composition end. Mouse drags are left to BlockNote: it keeps the toolbar closed
+ * pointer-up/cancel, drag end and composition end. Mouse drags are left to BlockNote: it keeps the toolbar closed
  * until the pointer is released, and so do we.
  *
  * Upgrade risk: this relies on (a) the `formattingToolbar` extension's store being the toolbar's
@@ -64,6 +64,7 @@ export function ToolbarVisibilitySync() {
       const onDown = () => {
         pointerDown = true;
       };
+      // A cancelled pointer or an aborted drag never gets a pointerup; without this the sync stays frozen.
       const onUp = () => {
         pointerDown = false;
         dismissedFor = null; // selecting the same range again by mouse reopens the toolbar
@@ -72,10 +73,14 @@ export function ToolbarVisibilitySync() {
       view.dom.addEventListener("pointerdown", onDown);
       view.dom.addEventListener("compositionend", sync);
       view.root.addEventListener("pointerup", onUp, { capture: true });
+      view.root.addEventListener("pointercancel", onUp, { capture: true });
+      view.root.addEventListener("dragend", onUp, { capture: true });
       detachDom = () => {
         view.dom.removeEventListener("pointerdown", onDown);
         view.dom.removeEventListener("compositionend", sync);
         view.root.removeEventListener("pointerup", onUp, { capture: true });
+        view.root.removeEventListener("pointercancel", onUp, { capture: true });
+        view.root.removeEventListener("dragend", onUp, { capture: true });
       };
       return true;
     };
