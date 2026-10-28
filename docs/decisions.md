@@ -209,6 +209,7 @@ Status: accepted.
 - Delete of the only row or only column removes the whole table block (`editor.removeBlocks`). BlockNote's `removeRowOrColumn` goes through prosemirror-tables `deleteRow`/`deleteColumn`, which refuse (no-op) when the selection spans the whole table, so the rule is implemented in Folio's delete item.
 - The header toggles are BlockNote's own behaviour reproduced: `editor.updateBlock` setting `headerRows` / `headerCols` to 1 or undefined; the item shows a check mark when on.
 - Menu items have `role=menuitem` / `menuitemcheckbox` but no `bn-menu-item` class (only the header toggles' original had it); e2e selects `.bn-table-handle-menu [role^="menuitem"]`.
+- **Pinned in Task 4 (e2e):** deleting row 0 of a table whose `headerRows` is 1 leaves a table with **no header row** (stored `headerRows` absent/0): the next row does not inherit the header. This is BlockNote 0.56 / prosemirror-tables behaviour (header-ness is per cell type, and the delete drops the header cells with the row); Folio does not change it. Toggling the header row or column keeps `columnWidths`. Column resize and row/column drag-reorder are BlockNote's own (`columnResizing`, handle drag) and are covered by Playwright WebKit with `page.mouse` (no `fixme` needed); a dragged column carries its width.
 Status: accepted.
 
 ## D-030 Table cell keyboard navigation (Phase 3 Task 2)

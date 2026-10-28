@@ -41,8 +41,8 @@ async function storedTable(page: Page) {
     const tree = await fake.tabLoad(tabs[0]!.id);
     const node = tree.find((n) => n.type === "table");
     if (!node) return null;
-    const content = node.content as { rows: { cells: unknown[] }[]; headerRows?: number; headerCols?: number };
-    return { rows: content.rows.length, cols: content.rows[0]!.cells.length, headerRows: content.headerRows, headerCols: content.headerCols };
+    const content = node.content as { rows: { cells: unknown[] }[]; headerRows?: number; headerCols?: number; columnWidths?: (number | null)[] };
+    return { rows: content.rows.length, cols: content.rows[0]!.cells.length, headerRows: content.headerRows, headerCols: content.headerCols, columnWidths: content.columnWidths };
   });
 }
 
@@ -453,4 +453,173 @@ test("shift-home in a cell then bold formats only that cell", async ({ page }) =
   await reopen(page);
   await expect(table(page).locator("strong")).toHaveCount(1);
   await expect(cell(page, 0, 2).locator("strong")).toHaveText("ccc");
+});
+
+/** Types a distinct word in every cell of the 2x3 table: [["a","b","c"],["d","e","f"]]. */
+async function fillTable(page: Page) {
+  for (const [r, c, w] of [[0, 0, "a"], [0, 1, "b"], [0, 2, "c"], [1, 0, "d"], [1, 1, "e"], [1, 2, "f"]] as const) {
+    await focusCell(page, r, c);
+    await page.keyboard.type(w);
+  }
+}
+
+const widthOf = async (page: Page, c: number) => (await cell(page, 0, c).boundingBox())!.width;
+
+/** Drags the border on the right edge of column `c` by `dx` px (prosemirror-tables' column resize handle). */
+async function dragBorder(page: Page, c: number, dx: number) {
+  const box = (await cell(page, 0, c).boundingBox())!;
+  const x = box.x + box.width - 2;
+  const y = box.y + box.height / 2;
+  await page.mouse.move(x - 10, y);
+  await page.mouse.move(x, y, { steps: 3 });
+  await expect(table(page).locator("..").locator(".column-resize-handle").first()).toBeAttached();
+  await page.mouse.down();
+  await page.mouse.move(x + dx / 2, y, { steps: 6 });
+  await page.mouse.move(x + dx, y, { steps: 6 });
+  await page.mouse.up();
+}
+
+test("dragging a column border resizes it and the width persists", async ({ page }) => {
+  await insertTable(page);
+  const before = await widthOf(page, 0);
+  const otherBefore = await widthOf(page, 2);
+  await dragBorder(page, 0, 80);
+  await expect.poll(() => widthOf(page, 0)).toBeGreaterThan(before + 40);
+  const after = await widthOf(page, 0);
+  expect(Math.abs((await widthOf(page, 2)) - otherBefore)).toBeLessThan(2);
+  await settle(page);
+  const stored = (await storedTable(page))!.columnWidths!;
+  expect(stored[0]).not.toBeNull();
+  expect(Math.abs(stored[0]! - after)).toBeLessThan(3);
+  await reopen(page);
+  expect(Math.abs((await widthOf(page, 0)) - after)).toBeLessThan(2);
+  expect(Math.abs((await storedTable(page))!.columnWidths![0]! - stored[0]!)).toBeLessThan(2);
+});
+
+test("a dragged column border cannot shrink a column below the minimum", async ({ page }) => {
+  await insertTable(page);
+  await dragBorder(page, 0, -400);
+  await settle(page);
+  const w = (await storedTable(page))!.columnWidths![0]!;
+  expect(w).toBeGreaterThanOrEqual(35);
+  expect(await widthOf(page, 0)).toBeGreaterThanOrEqual(34);
+});
+
+/** Drags a table handle onto the middle of the cell at [r, c]. */
+async function dragHandleTo(page: Page, handle: ReturnType<typeof rowHandle>, r: number, c: number) {
+  const h = (await handle.boundingBox())!;
+  const dest = (await cell(page, r, c).boundingBox())!;
+  await page.mouse.move(h.x + h.width / 2, h.y + h.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(h.x + h.width / 2 + 6, h.y + h.height / 2 + 6, { steps: 4 });
+  await page.mouse.move(dest.x + dest.width / 2, dest.y + dest.height / 2, { steps: 14 });
+  await page.mouse.up();
+}
+
+test("dragging a row handle reorders rows", async ({ page }) => {
+  await insertTable(page);
+  await fillTable(page);
+  await settle(page);
+  await hoverCell(page, 0, 0);
+  await dragHandleTo(page, rowHandle(page), 1, 0);
+  await expect.poll(() => cellTexts(page)).toEqual([["d", "e", "f"], ["a", "b", "c"]]);
+  await reopen(page);
+  expect(await storedCells(page)).toEqual([["d", "e", "f"], ["a", "b", "c"]]);
+  expect(await cellTexts(page)).toEqual([["d", "e", "f"], ["a", "b", "c"]]);
+});
+
+test("dragging a column handle reorders columns", async ({ page }) => {
+  await insertTable(page);
+  await fillTable(page);
+  await settle(page);
+  await hoverCell(page, 0, 0);
+  await dragHandleTo(page, colHandle(page), 0, 2);
+  await expect.poll(() => cellTexts(page)).toEqual([["b", "c", "a"], ["e", "f", "d"]]);
+  await reopen(page);
+  expect(await storedCells(page)).toEqual([["b", "c", "a"], ["e", "f", "d"]]);
+});
+
+test("dragging a column handle moves its width with it", async ({ page }) => {
+  await insertTable(page);
+  await fillTable(page);
+  await dragBorder(page, 0, 80);
+  await settle(page);
+  const w0 = (await storedTable(page))!.columnWidths![0]!;
+  await hoverCell(page, 0, 0);
+  await dragHandleTo(page, colHandle(page), 0, 2);
+  await expect.poll(() => cellTexts(page)).toEqual([["b", "c", "a"], ["e", "f", "d"]]);
+  await settle(page);
+  const widths = (await storedTable(page))!.columnWidths!;
+  expect(Math.abs(widths[2]! - w0)).toBeLessThan(2);
+});
+
+test("one undo reverts a row reorder and the store matches", async ({ page }) => {
+  await insertTable(page);
+  await fillTable(page);
+  await settle(page);
+  await hoverCell(page, 0, 0);
+  await dragHandleTo(page, rowHandle(page), 1, 0);
+  await expect.poll(() => cellTexts(page)).toEqual([["d", "e", "f"], ["a", "b", "c"]]);
+  await settle(page);
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect.poll(() => cellTexts(page)).toEqual([["a", "b", "c"], ["d", "e", "f"]]);
+  await reopen(page);
+  expect(await storedCells(page)).toEqual([["a", "b", "c"], ["d", "e", "f"]]);
+});
+
+test("toggling the header row then undo reverts it in the store", async ({ page }) => {
+  await insertTable(page);
+  await settle(page);
+  await openRowMenu(page, 0);
+  await choose(page, "Hàng tiêu đề");
+  await expect(rows(page).first().locator("th")).toHaveCount(3);
+  await settle(page);
+  expect(await storedTable(page)).toMatchObject({ headerRows: 1 });
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect(table(page).locator("th")).toHaveCount(0);
+  await settle(page);
+  expect((await storedTable(page))!.headerRows ?? 0).toBe(0);
+  await reopen(page);
+  await expect(table(page).locator("th")).toHaveCount(0);
+});
+
+test("header column toggle persists", async ({ page }) => {
+  await insertTable(page);
+  await openColMenu(page, 0);
+  await choose(page, "Cột tiêu đề");
+  await expect(table(page).locator("th")).toHaveCount(2);
+  await reopen(page);
+  await expect(table(page).locator("th")).toHaveCount(2);
+  expect(await storedTable(page)).toMatchObject({ headerCols: 1 });
+});
+
+test("toggling headers keeps the column widths", async ({ page }) => {
+  await insertTable(page);
+  await dragBorder(page, 0, 80);
+  await settle(page);
+  const norm = async () => ((await storedTable(page))!.columnWidths ?? []).map((w) => w ?? null);
+  const widths = await norm();
+  expect(widths[0]).not.toBeNull();
+  await openRowMenu(page, 0);
+  await choose(page, "Hàng tiêu đề");
+  await openColMenu(page, 0);
+  await choose(page, "Cột tiêu đề");
+  await settle(page);
+  expect(await norm()).toEqual(widths);
+  await reopen(page);
+  expect(await norm()).toEqual(widths);
+});
+
+test("deleting row 0 of a table with a header row drops the header (the next row does not inherit it)", async ({ page }) => {
+  await insertTable(page);
+  await fillTable(page);
+  await openRowMenu(page, 0);
+  await choose(page, "Hàng tiêu đề");
+  await openRowMenu(page, 0);
+  await choose(page, "Xoá hàng");
+  await expect(rows(page)).toHaveCount(1);
+  await reopen(page);
+  expect(await storedCells(page)).toEqual([["d", "e", "f"]]);
+  expect((await storedTable(page))!.headerRows ?? 0).toBe(0);
+  await expect(table(page).locator("th")).toHaveCount(0);
 });
