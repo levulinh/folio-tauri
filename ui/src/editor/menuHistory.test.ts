@@ -4,7 +4,7 @@ import { routeMenuHistory } from "./menuHistory";
 
 let editorDom: HTMLElement;
 let inEditor: HTMLElement;
-const editor = { undo: vi.fn(), redo: vi.fn(), prosemirrorView: { dom: null as HTMLElement | null } };
+const editor = { undo: vi.fn(), redo: vi.fn(), prosemirrorView: { dom: null as HTMLElement | null, composing: false } };
 let exec: ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
@@ -13,6 +13,7 @@ beforeEach(() => {
   inEditor = editorDom.appendChild(document.createElement("p"));
   inEditor.tabIndex = 0;
   editor.prosemirrorView.dom = editorDom;
+  editor.prosemirrorView.composing = false;
   editor.undo.mockClear();
   editor.redo.mockClear();
   usePageStore.setState({ activeEditor: editor as never });
@@ -32,6 +33,16 @@ describe("routeMenuHistory", () => {
     expect(editor.redo).not.toHaveBeenCalled();
     routeMenuHistory("redo");
     expect(editor.redo).toHaveBeenCalledTimes(1);
+    expect(exec).not.toHaveBeenCalled();
+  });
+
+  it("focus in the editor while composing: does nothing", () => {
+    inEditor.focus();
+    editor.prosemirrorView.composing = true;
+    routeMenuHistory("undo");
+    routeMenuHistory("redo");
+    expect(editor.undo).not.toHaveBeenCalled();
+    expect(editor.redo).not.toHaveBeenCalled();
     expect(exec).not.toHaveBeenCalled();
   });
 

@@ -31,6 +31,7 @@ export function installNativeHistoryGuard(): void {
         handled = false;
       }, 0);
       if (!(document.activeElement && dom.contains(document.activeElement))) return;
+      if (editor.prosemirrorView.composing) return; // never run history under an IME composition
       if (e.inputType === "historyUndo") editor.undo();
       else editor.redo();
     },

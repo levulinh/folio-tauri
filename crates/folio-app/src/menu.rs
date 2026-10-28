@@ -114,6 +114,7 @@ mod tests {
     fn edit_menu_has_no_predefined_undo_or_redo() {
         let source = include_str!("menu.rs");
         for kind in ["undo", "redo"] {
+            // The needle is assembled from pieces so this test's own text never contains it.
             let needle = format!("{}{}::{kind}(", "Predefined", "MenuItem");
             let production = source.split("#[cfg(test)]").next().unwrap();
             assert!(!production.contains(&needle), "found {needle}");
