@@ -2,6 +2,7 @@
 
 pub mod db;
 pub mod error;
+pub mod fold;
 pub mod ids;
 pub mod order;
 pub mod time;
