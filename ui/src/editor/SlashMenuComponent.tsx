@@ -1,12 +1,13 @@
-import { useComponentsContext, type DefaultReactSuggestionItem, type SuggestionMenuProps } from "@blocknote/react";
+import { useComponentsContext, useDictionary, type DefaultReactSuggestionItem, type SuggestionMenuProps } from "@blocknote/react";
 import type { FolioSlashItem } from "./slashMenu";
 
 /**
  * BlockNote's own suggestion-menu primitives (Mantine-styled), each item wrapped in a div that
  * carries the test ids: the primitives reject extra props. The wrapper has no styling of its own.
  */
-export function SlashMenuComponent({ items, selectedIndex, onItemClick }: SuggestionMenuProps<DefaultReactSuggestionItem>) {
+export function SlashMenuComponent({ items, loadingState, selectedIndex, onItemClick }: SuggestionMenuProps<DefaultReactSuggestionItem>) {
   const Components = useComponentsContext()!;
+  const dict = useDictionary();
   return (
     <div data-testid="slash-menu">
       <Components.SuggestionMenu.Root id="bn-suggestion-menu" className="bn-suggestion-menu">
@@ -21,6 +22,14 @@ export function SlashMenuComponent({ items, selectedIndex, onItemClick }: Sugges
             />
           </div>
         ))}
+        {items.length === 0 && loadingState !== "loading-initial" && (
+          <Components.SuggestionMenu.EmptyItem className="bn-suggestion-menu-item">
+            {dict.suggestion_menu.no_items_title}
+          </Components.SuggestionMenu.EmptyItem>
+        )}
+        {(loadingState === "loading-initial" || loadingState === "loading") && (
+          <Components.SuggestionMenu.Loader className="bn-suggestion-menu-loader" />
+        )}
       </Components.SuggestionMenu.Root>
     </div>
   );

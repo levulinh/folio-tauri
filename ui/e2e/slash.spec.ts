@@ -124,10 +124,21 @@ test("table item inserts a table (BlockNote default: 2 rows x 3 columns)", async
   await expect(table.locator("tr").first().locator("th, td")).toHaveCount(3);
 });
 
-test("no menu opens while composing", async ({ page }) => {
+test("a slash typed after compositionstart still lands as text (smoke; the guard is covered in Vitest)", async ({ page }) => {
   await firstLine(page).click();
   await editorOf(page).locator(".bn-editor").dispatchEvent("compositionstart");
   await page.keyboard.type("/");
   await expect(firstLine(page)).toHaveText("/");
+  await expect(menu(page)).toHaveCount(0);
+});
+
+test("no slash menu in a table cell", async ({ page }) => {
+  await firstLine(page).click();
+  await page.keyboard.type("/table");
+  await page.keyboard.press("Enter");
+  const cell = editorOf(page).locator("table td, table th").first();
+  await cell.click();
+  await page.keyboard.type("/");
+  await expect(cell).toContainText("/");
   await expect(menu(page)).toHaveCount(0);
 });

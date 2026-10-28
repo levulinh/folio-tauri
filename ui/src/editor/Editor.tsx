@@ -6,7 +6,8 @@ import {
   type DefaultReactSuggestionItem,
 } from "@blocknote/react";
 import type { PartialBlock } from "@blocknote/core";
-import { useEffect, useState } from "react";
+import type { Transaction } from "prosemirror-state";
+import { useCallback, useEffect, useState } from "react";
 import { backend } from "../backend";
 import type { BlockNode } from "../backend/generated/BlockNode";
 import { usePageStore } from "../state/pageStore";
@@ -36,6 +37,10 @@ function useColorScheme(): "light" | "dark" {
   return dark ? "dark" : "light";
 }
 
+/** BlockNote's default rule: no slash menu inside table cells. */
+const shouldOpenSlash = (tr: Transaction) => !tr.selection.$from.parent.type.isInGroup("tableContent");
+const runSlashItem = (item: DefaultReactSuggestionItem) => item.onItemClick();
+
 interface Loaded {
   tabId: string;
   /** What the editor starts with: the stored tree, or the document of the tab's unsaved pipeline. */
@@ -55,6 +60,10 @@ function EditorInstance({ loaded }: { loaded: Loaded }) {
     animations: false,
     extensions: [findExtension(), slashComposingGuard()],
   });
+  const getSlashItems = useCallback(
+    async (query: string): Promise<DefaultReactSuggestionItem[]> => filterSlashItems(slashItems(editor), query),
+    [editor],
+  );
   const setActiveEditor = usePageStore((s) => s.setActiveEditor);
   useEffect(() => {
     setActiveEditor(editor);
@@ -79,9 +88,10 @@ function EditorInstance({ loaded }: { loaded: Loaded }) {
       <FormattingToolbarController formattingToolbar={FolioFormattingToolbar} />
       <SuggestionMenuController
         triggerCharacter="/"
-        getItems={async (query): Promise<DefaultReactSuggestionItem[]> => filterSlashItems(slashItems(editor), query)}
+        getItems={getSlashItems}
+        shouldOpen={shouldOpenSlash}
         suggestionMenuComponent={SlashMenuComponent}
-        onItemClick={(item) => item.onItemClick()}
+        onItemClick={runSlashItem}
       />
     </BlockNoteView>
   );

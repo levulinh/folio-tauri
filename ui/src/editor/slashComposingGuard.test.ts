@@ -35,12 +35,21 @@ afterEach(() => {
 });
 
 /** Feeds `text` to ProseMirror's text-input handlers exactly as a typed (or composed) character is. */
-function typeText(text: string): void {
+function typeText(text: string, compositionMeta?: number): boolean {
   const view = editor.prosemirrorView!;
   const { from, to } = view.state.selection;
-  const handled = view.someProp("handleTextInput", (f) => f(view, from, to, text, () => view.state.tr.insertText(text, from, to)));
-  if (!handled) view.dispatch(view.state.tr.insertText(text, from, to));
+  const deflt = () => {
+    const tr = view.state.tr.insertText(text, from, to);
+    return compositionMeta === undefined ? tr : tr.setMeta("composition", compositionMeta);
+  };
+  const handled = !!view.someProp("handleTextInput", (f) => f(view, from, to, text, deflt));
+  if (!handled) view.dispatch(deflt());
+  return handled;
 }
+
+const setComposing = (on: boolean) => {
+  (editor.prosemirrorView as unknown as { input: { composing: boolean } }).input.composing = on;
+};
 
 const menuOpen = () => editor.getExtension(SuggestionMenu)!.shown();
 const paragraphText = () => editor.prosemirrorState.doc.textContent;
@@ -54,11 +63,30 @@ describe("slashComposingGuard", () => {
 
   it("slash menu does not open while composing", () => {
     const view = editor.prosemirrorView!;
-    (view as unknown as { input: { composing: boolean } }).input.composing = true;
+    setComposing(true);
     expect(view.composing).toBe(true);
     typeText("/");
     expect(paragraphText()).toBe("/"); // the character still lands
     expect(menuOpen()).toBe(false);
     expect(host.querySelector(".bn-suggestion-decorator")).toBeNull();
+  });
+
+  it("composition flushed after compositionend does not open the menu", () => {
+    expect(editor.prosemirrorView!.composing).toBe(false);
+    typeText("/", 7);
+    expect(paragraphText()).toBe("/"); // inserted once
+    expect(menuOpen()).toBe(false);
+  });
+
+  it("only a lone slash is intercepted", () => {
+    setComposing(true);
+    expect(typeText("a/")).toBe(false);
+  });
+
+  it("slash opens normally after a composition ends", () => {
+    setComposing(true);
+    setComposing(false);
+    typeText("/");
+    expect(menuOpen()).toBe(true);
   });
 });
