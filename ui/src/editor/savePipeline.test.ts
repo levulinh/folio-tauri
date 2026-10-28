@@ -4,7 +4,7 @@ import type { Backend } from "../backend/Backend";
 import type { BlockNode } from "../backend/generated/BlockNode";
 import type { BlockOp } from "../backend/generated/BlockOp";
 import { useUiStore } from "../state/uiStore";
-import { flushAll, registerPipeline, adoptRetired, peekRetiredEditor, retirePipeline } from "./pipelineRegistry";
+import { flushAll, getPipeline, pendingDocumentFor } from "./pipelineRegistry";
 import { toEditorBlocks } from "./convert";
 import { createSavePipeline, type SavePipeline } from "./savePipeline";
 import { schema } from "./schema";
@@ -24,6 +24,8 @@ function mockBackend(stored: BlockNode[] = []) {
   const calls: Call[] = [];
   const loads: string[] = [];
   const state = { fail: null as unknown, failTimes: 0, stored };
+  /** What the "database" holds after the applied ops: id -> content. */
+  const store = new Map<string, unknown>();
   const backend: Pick<Backend, "tabApply" | "tabLoad"> = {
     async tabApply(tabId, ops) {
       if (state.failTimes > 0) {
@@ -31,6 +33,10 @@ function mockBackend(stored: BlockNode[] = []) {
         throw state.fail;
       }
       calls.push({ tabId, ops });
+      for (const op of ops) {
+        if (op.op === "upsert") store.set(op.id, op.content);
+        else for (const id of op.ids) store.delete(id);
+      }
       return { applied: ops.length, pageUpdatedAt: 0 };
     },
     async tabLoad(tabId) {
@@ -38,10 +44,17 @@ function mockBackend(stored: BlockNode[] = []) {
       return state.stored;
     },
   };
-  return { backend, calls, loads, state };
+  return { backend, calls, loads, state, store };
 }
 
 const pipelines: SavePipeline[] = [];
+const editorOf = (nodes: BlockNode[]) => BlockNoteEditor.create({ schema, initialContent: toEditorBlocks(nodes) });
+const flatIds = (nodes: BlockNode[]): string[] => nodes.flatMap((n) => [n.id, ...flatIds(n.children)]);
+function viaRegistry(tabId: string, be: ReturnType<typeof mockBackend>): SavePipeline {
+  const p = getPipeline(tabId, be.backend);
+  pipelines.push(p);
+  return p;
+}
 function setup(nodes: BlockNode[], tabId = "T1", opts: Partial<Parameters<typeof createSavePipeline>[0]> = {}, stored?: BlockNode[]) {
   const editor = BlockNoteEditor.create({ schema, initialContent: toEditorBlocks(nodes) });
   const be = mockBackend(stored ?? nodes);
@@ -261,26 +274,78 @@ describe("savePipeline", () => {
   });
 
   it("flushAll_flushes_every_registered_pipeline", async () => {
-    const a = setup([node("a", "")], "T1");
-    const b = setup([node("b", "")], "T2");
-    const offA = registerPipeline(a.pipeline);
-    const offB = registerPipeline(b.pipeline);
-    a.editor.updateBlock("a", { content: "x" });
-    b.editor.updateBlock("b", { content: "y" });
+    const be1 = mockBackend();
+    const be2 = mockBackend();
+    const p1 = viaRegistry("R1", be1);
+    const p2 = viaRegistry("R2", be2);
+    const e1 = editorOf([node("a", "")]);
+    const e2 = editorOf([node("b", "")]);
+    p1.attach(e1);
+    p2.attach(e2);
+    e1.updateBlock("a", { content: "x" });
+    e2.updateBlock("b", { content: "y" });
     await flushAll();
-    expect(a.calls).toHaveLength(1);
-    expect(b.calls).toHaveLength(1);
-    offA();
-    offB();
+    expect(be1.calls).toHaveLength(1);
+    expect(be2.calls).toHaveLength(1);
   });
 
-  it("flushAll_waits_for_final_flush_of_unmounted_pipeline", async () => {
-    const a = setup([node("a", "")], "T1");
-    const off = registerPipeline(a.pipeline);
-    a.editor.updateBlock("a", { content: "x" });
-    retirePipeline(a.pipeline, off, "T1", a.editor);
-    await flushAll();
-    expect(a.calls).toHaveLength(1);
+  it("flushAll_flushes_detached_pipelines", async () => {
+    const be = mockBackend();
+    be.state.fail = { code: "db", message: "down" };
+    be.state.failTimes = 2; // the edit's save and the detach flush both fail
+    const p = viaRegistry("D1", be);
+    const e = editorOf([node("a", "")]);
+    p.attach(e);
+    e.updateBlock("a", { content: "x" });
+    await vitest.advanceTimersByTimeAsync(600);
+    p.detach(e);
+    await vitest.advanceTimersByTimeAsync(0);
+    expect(be.calls).toHaveLength(0);
+    expect(p.status()).toBe("error");
+    await flushAll(); // one attempt now, without waiting for the backoff
+    expect(be.calls).toHaveLength(1);
+  });
+
+  it("detached_clean_pipeline_disposes_and_leaves_registry", async () => {
+    const be = mockBackend();
+    const p = viaRegistry("C1", be);
+    const e = editorOf([node("a", "")]);
+    p.attach(e);
+    e.updateBlock("a", { content: "x" });
+    p.detach(e);
+    await vitest.advanceTimersByTimeAsync(0);
+    expect(be.calls).toHaveLength(1);
+    expect(p.status()).toBe("saved");
+    expect(pendingDocumentFor("C1")).toBeNull();
+    expect(getPipeline("C1", be.backend)).not.toBe(p); // it left the registry
+  });
+
+  it("detach_of_a_stale_editor_keeps_the_newer_one_attached", async () => {
+    const be = mockBackend();
+    const p = viaRegistry("S1", be);
+    const e = editorOf([node("a", "")]);
+    p.attach(e);
+    p.attach(e); // StrictMode: attach again on the same editor
+    p.detach(BlockNoteEditor.create({ schema })); // some other editor
+    e.updateBlock("a", { content: "x" });
+    await vitest.advanceTimersByTimeAsync(600);
+    expect(be.calls).toHaveLength(1);
+  });
+
+  it("not_found_disposes_detached_pipeline", async () => {
+    const be = mockBackend();
+    be.state.fail = { code: "not_found", message: "gone" };
+    be.state.failTimes = 1000;
+    const p = viaRegistry("N1", be);
+    const e = editorOf([node("a", "")]);
+    p.attach(e);
+    e.updateBlock("a", { content: "x" });
+    p.detach(e);
+    await vitest.advanceTimersByTimeAsync(60_000);
+    expect(p.status()).toBe("saved");
+    expect(pendingDocumentFor("N1")).toBeNull();
+    expect(getPipeline("N1", be.backend)).not.toBe(p);
+    expect(useUiStore.getState().toasts).toHaveLength(0);
   });
 
   it("default_block_on_empty_page_is_saved_with_first_insert", async () => {
@@ -311,88 +376,64 @@ describe("savePipeline", () => {
     spy.mockRestore();
   });
 
-  it("reopen_tab_with_unsaved_retired_pipeline_adopts_it", async () => {
+  /** What Editor.tsx's loadTab + effect do for a tab, without React. */
+  function openTab(tabId: string, be: ReturnType<typeof mockBackend>, storedNodes: BlockNode[]) {
+    const pending = pendingDocumentFor(tabId);
+    const initial = pending ? pending.document : toEditorBlocks(storedNodes);
+    const ids = pending ? pending.storedIds : flatIds(storedNodes);
+    const editor = BlockNoteEditor.create({ schema, initialContent: initial as never });
+    const pipeline = viaRegistry(tabId, be);
+    pipeline.seedStoredIds(ids);
+    return { editor, pipeline };
+  }
+
+  it("chained_strictmode_reopen_keeps_unsaved_text", async () => {
     const stored = [node("a", "stored")];
-    const old = setup(stored, "T1", {}, stored);
-    old.state.fail = { code: "db", message: "down" };
-    old.state.failTimes = 2; // the edit's save and the final flush on unmount both fail
-    const off = registerPipeline(old.pipeline);
-    old.editor.updateBlock("a", { content: "old-editor-text" });
-    await vitest.advanceTimersByTimeAsync(600); // save fails, ids put back
-    expect(old.pipeline.status()).toBe("error");
-    retirePipeline(old.pipeline, off, "T1", old.editor);
-    await vitest.advanceTimersByTimeAsync(0);
-
-    // A new Editor for the tab mounts: takes the retired editor's document instead of tabLoad.
-    const retiredEditor = peekRetiredEditor("T1");
-    expect(retiredEditor).toBe(old.editor);
-    const editor2 = BlockNoteEditor.create({ schema, initialContent: retiredEditor!.document as never });
-    expect(JSON.stringify(editor2.document[0]!.content)).toContain("old-editor-text");
-    const p2 = createSavePipeline({ tabId: "T1", editor: editor2, backend: old.backend, storedIds: ["a"] });
-    pipelines.push(p2);
-    adoptRetired("T1", p2);
-    editor2.insertBlocks([{ type: "paragraph", content: "newer" }], "a", "after");
-    await vitest.advanceTimersByTimeAsync(60_000);
-
-    // Old pipeline is silent; everything stored came from the new one and ends up newest.
-    const sent = old.calls.flatMap((c) => c.ops).filter((o) => o.op === "upsert");
-    expect(old.calls).toHaveLength(1);
-    expect(JSON.stringify(sent)).toContain("old-editor-text");
-    expect(sent.map((o) => (o as { id: string }).id)).toContain("a");
-    expect(JSON.stringify(sent)).not.toContain('"stored"');
-    expect(old.pipeline.status()).toBe("saved"); // disposed
-    expect(peekRetiredEditor("T1")).toBeNull();
-  });
-
-  it("flushAll_flushes_retired_pipelines", async () => {
-    const a = setup([node("a", "")], "T9");
-    a.state.fail = { code: "db", message: "down" };
-    a.state.failTimes = 2;
-    const off = registerPipeline(a.pipeline);
-    a.editor.updateBlock("a", { content: "x" });
+    const be = mockBackend(stored);
+    be.store.set("a", text("stored"));
+    be.state.fail = { code: "db", message: "down" };
+    be.state.failTimes = 1000;
+    const first = openTab("X1", be, stored);
+    first.pipeline.attach(first.editor);
+    first.editor.updateBlock("a", { content: "first" });
     await vitest.advanceTimersByTimeAsync(600);
-    retirePipeline(a.pipeline, off, "T9", a.editor);
-    await vitest.advanceTimersByTimeAsync(0);
-    expect(a.calls).toHaveLength(0);
-    await flushAll(); // one attempt now, without waiting for the backoff
-    expect(a.calls).toHaveLength(1);
-    const sink = setup([node("z", "")], "T9");
-    adoptRetired("T9", sink.pipeline); // cleanup
-  });
+    expect(first.pipeline.status()).toBe("error");
+    first.pipeline.detach(first.editor); // user leaves the tab
 
-  it("strictmode_double_effect_does_not_orphan_a_pipeline", async () => {
-    const stored = [node("a", "stored")];
-    const e = setup(stored, "T1", {}, stored); // editor E, p1 (React effect run 1)
-    e.state.fail = { code: "db", message: "down" };
-    e.state.failTimes = 1000;
-    const off1 = registerPipeline(e.pipeline);
-    retirePipeline(e.pipeline, off1, "T1", e.editor); // StrictMode cleanup
-    const p2 = createSavePipeline({ tabId: "T1", editor: e.editor, backend: e.backend, storedIds: ["a"] }); // run 2
-    pipelines.push(p2);
-    const off2 = registerPipeline(p2);
-    adoptRetired("T1", p2);
-    e.editor.updateBlock("a", { content: "first" });
-    await vitest.advanceTimersByTimeAsync(600);
-    expect(p2.status()).toBe("error");
-    retirePipeline(p2, off2, "T1", e.editor); // user leaves the tab
-    await vitest.advanceTimersByTimeAsync(0);
+    const second = openTab("X1", be, stored); // reopen: seeded from the unsaved document
+    expect(second.pipeline).toBe(first.pipeline);
+    expect(JSON.stringify(second.editor.document[0]!.content)).toContain("first");
+    // StrictMode: attach, cleanup (detach), attach again
+    second.pipeline.attach(second.editor);
+    second.pipeline.detach(second.editor);
+    second.pipeline.attach(second.editor);
 
-    // user reopens the tab: new editor E2 seeded from E, new pipeline p3 adopts
-    const seed = peekRetiredEditor("T1")!;
-    const e2 = BlockNoteEditor.create({ schema, initialContent: seed.document as never });
-    const p3 = createSavePipeline({ tabId: "T1", editor: e2, backend: e.backend, storedIds: ["a"] });
-    pipelines.push(p3);
-    adoptRetired("T1", p3);
-    e2.updateBlock("a", { content: "newer" });
-    await vitest.advanceTimersByTimeAsync(1000);
-    e.state.failTimes = 0; // backend recovers
+    be.state.failTimes = 0; // backend recovers
     await vitest.advanceTimersByTimeAsync(120_000);
+    await flushAll();
+    expect(be.store.get("a")).toEqual(text("first"));
+    second.editor.updateBlock("a", { content: "newer" });
+    await vitest.advanceTimersByTimeAsync(1000);
+    expect(be.store.get("a")).toEqual(text("newer"));
+  });
 
-    const contents = e.calls.flatMap((c) => c.ops).filter((o) => o.op === "upsert").map((o) => JSON.stringify((o as { content: unknown }).content));
-    expect(contents.length).toBeGreaterThan(0);
-    expect(contents.at(-1)).toContain("newer");
-    expect(e.pipeline.status()).toBe("saved"); // p1 disposed
-    expect(p2.status()).toBe("saved"); // p2 disposed
+  it("reopen_while_failing_does_not_overwrite_newer", async () => {
+    const stored = [node("a", "stored")];
+    const be = mockBackend(stored);
+    be.state.fail = { code: "db", message: "down" };
+    be.state.failTimes = 1000;
+    const first = openTab("X2", be, stored);
+    first.pipeline.attach(first.editor);
+    first.editor.updateBlock("a", { content: "old-editor-text" });
+    await vitest.advanceTimersByTimeAsync(600);
+    first.pipeline.detach(first.editor);
+    const second = openTab("X2", be, stored);
+    second.pipeline.attach(second.editor);
+    second.editor.updateBlock("a", { content: "newer" });
+    be.state.failTimes = 0;
+    await vitest.advanceTimersByTimeAsync(120_000);
+    expect(be.store.get("a")).toEqual(text("newer"));
+    expect(JSON.stringify(be.calls.at(-1)!.ops)).toContain("newer");
   });
 
   it("flush_requested_during_a_flush_runs_after_it", async () => {

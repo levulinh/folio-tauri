@@ -6,8 +6,7 @@ import { backend } from "../backend";
 import type { BlockNode } from "../backend/generated/BlockNode";
 import { usePageStore } from "../state/pageStore";
 import { reportError } from "../state/uiStore";
-import { adoptRetired, peekRetiredEditor, registerPipeline, retirePipeline } from "./pipelineRegistry";
-import { createSavePipeline } from "./savePipeline";
+import { getPipeline, pendingDocumentFor } from "./pipelineRegistry";
 import { toEditorBlocks } from "./convert";
 import { dictionary } from "./dictionary";
 import { schema } from "./schema";
@@ -27,8 +26,9 @@ function useColorScheme(): "light" | "dark" {
 
 interface Loaded {
   tabId: string;
-  /** What the editor starts with: the stored tree, or the document of a retired unsaved editor. */
+  /** What the editor starts with: the stored tree, or the document of the tab's unsaved pipeline. */
   initial: PartialBlock[] | undefined;
+  /** Ids the backend has, to seed the tab's pipeline. */
   storedIds: string[];
 }
 
@@ -49,15 +49,14 @@ function EditorInstance({ loaded }: { loaded: Loaded }) {
   }, [editor, setActiveEditor]);
   const setSaveStatus = usePageStore((s) => s.setSaveStatus);
   useEffect(() => {
-    const pipeline = createSavePipeline({ tabId, editor, backend, storedIds });
-    const unregister = registerPipeline(pipeline);
-    adoptRetired(tabId, pipeline); // a retired pipeline of this tab hands its unsaved work over
+    const pipeline = getPipeline(tabId, backend);
+    pipeline.seedStoredIds(storedIds); // ignored if the pipeline already knows better
+    pipeline.attach(editor);
     const offStatus = pipeline.onStatus(setSaveStatus);
     setSaveStatus(pipeline.status());
     return () => {
       offStatus();
-      // Not awaited: the registry tracks the final flush so flushAll() still waits for it.
-      retirePipeline(pipeline, unregister, tabId, editor);
+      pipeline.detach(editor); // flushes now; the pipeline lives on until everything is saved
       if (pipeline.status() !== "error") setSaveStatus("saved"); // never hide a pending error
     };
   }, [tabId, editor, storedIds, setSaveStatus]);
@@ -65,13 +64,11 @@ function EditorInstance({ loaded }: { loaded: Loaded }) {
 }
 
 async function loadTab(tabId: string): Promise<Loaded> {
-  // An unmounted editor that has not saved yet is newer than the database: start from its document.
-  // Peek before loading: if it saves meanwhile, its document is still the newest content.
-  const retiredEditor = peekRetiredEditor(tabId);
+  // Unsaved work of a just-left editor is newer than the database: start from its document.
+  const pending = pendingDocumentFor(tabId);
+  if (pending) return { tabId, initial: pending.document as PartialBlock[], storedIds: pending.storedIds };
   const stored = await backend.tabLoad(tabId);
-  const storedIds = collectIds(stored);
-  if (retiredEditor) return { tabId, initial: retiredEditor.document as PartialBlock[], storedIds };
-  return { tabId, initial: stored.length ? toEditorBlocks(stored) : undefined, storedIds };
+  return { tabId, initial: stored.length ? toEditorBlocks(stored) : undefined, storedIds: collectIds(stored) };
 }
 
 function collectIds(nodes: BlockNode[]): string[] {

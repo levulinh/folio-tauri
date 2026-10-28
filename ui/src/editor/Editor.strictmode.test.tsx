@@ -1,3 +1,4 @@
+import { BlockNoteEditor } from "@blocknote/core";
 import { act, cleanup, render } from "@testing-library/react";
 import { StrictMode } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -6,51 +7,91 @@ import { createFakeBackend } from "../backend/fakeBackend";
 const fake = createFakeBackend();
 vi.mock("../backend", () => ({ backend: fake }));
 
-const counts = { created: 0, disposed: 0 };
-vi.mock("./savePipeline", async (orig) => {
-  const mod = await orig<typeof import("./savePipeline")>();
-  return {
-    ...mod,
-    createSavePipeline: (o: Parameters<typeof mod.createSavePipeline>[0]) => {
-      counts.created += 1;
-      const p = mod.createSavePipeline(o);
-      const dispose = p.dispose;
-      p.dispose = () => {
-        counts.disposed += 1;
-        dispose();
-      };
-      return p;
-    },
-  };
-});
-
 const { Editor } = await import("./Editor");
+const { usePageStore } = await import("../state/pageStore");
 
 Object.defineProperty(window, "matchMedia", {
   value: () => ({ matches: false, addEventListener() {}, removeEventListener() {} }),
 });
 
-afterEach(() => {
+/** Counts onChange subscriptions that are still active. */
+let active = 0;
+const realOnChange = BlockNoteEditor.prototype.onChange;
+vi.spyOn(BlockNoteEditor.prototype, "onChange").mockImplementation(function (this: BlockNoteEditor, ...args: never[]) {
+  const off = (realOnChange as (...a: unknown[]) => () => void).apply(this, args);
+  // Only the save pipeline's subscriptions count (BlockNote subscribes internally too).
+  if (!new Error().stack?.includes("savePipeline")) return off;
+  active += 1;
+  let done = false;
+  return () => {
+    if (!done) {
+      done = true;
+      active -= 1;
+    }
+    off();
+  };
+} as never);
+
+const settle = () =>
+  act(async () => {
+    await new Promise((r) => setTimeout(r, 100));
+  });
+
+afterEach(async () => {
   cleanup();
-  vi.restoreAllMocks();
+  await settle();
+  vi.mocked(fake.tabApply).mockRestore?.();
 });
 
+async function newTab() {
+  const page = (await fake.pageCreate()).page;
+  const [tab] = await fake.tabsList(page.id);
+  return tab!.id;
+}
+
 describe("Editor under StrictMode", () => {
-  it("leaves exactly one live pipeline after mount", async () => {
-    const page = (await fake.pageCreate()).page;
-    const [tab] = await fake.tabsList(page.id);
-    // A failing backend keeps unsaved pipelines alive: an orphaned twin would not dispose itself.
+  it("strictmode_editor_has_one_subscriber", async () => {
+    const tabId = await newTab();
+    // A failing backend keeps the pipeline alive: nothing may hide an extra subscriber.
     vi.spyOn(fake, "tabApply").mockRejectedValue({ code: "db", message: "down" });
     vi.spyOn(console, "error").mockImplementation(() => {});
+    const before = active;
     render(
       <StrictMode>
-        <Editor tabId={tab!.id} />
+        <Editor tabId={tabId} />
       </StrictMode>,
     );
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 100));
+    await settle();
+    expect(active - before).toBe(1);
+  });
+
+  it("strictmode_reopen_while_failing_keeps_unsaved_text_and_one_subscriber", async () => {
+    const tabId = await newTab();
+    vi.spyOn(fake, "tabApply").mockRejectedValue({ code: "db", message: "down" });
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const before = active;
+    const first = render(
+      <StrictMode>
+        <Editor tabId={tabId} />
+      </StrictMode>,
+    );
+    await settle();
+    const editor1 = usePageStore.getState().activeEditor!;
+    act(() => {
+      editor1.updateBlock(editor1.document[0]!, { content: "chưa lưu" });
     });
-    expect(counts.created).toBeGreaterThanOrEqual(2); // the double effect really ran
-    expect(counts.created - counts.disposed).toBe(1);
+    first.unmount();
+    await settle();
+    expect(active - before).toBe(0); // detached
+    render(
+      <StrictMode>
+        <Editor tabId={tabId} />
+      </StrictMode>,
+    );
+    await settle();
+    const editor2 = usePageStore.getState().activeEditor!;
+    expect(editor2).not.toBe(editor1);
+    expect(JSON.stringify(editor2.document[0]!.content)).toContain("chưa lưu");
+    expect(active - before).toBe(1);
   });
 });
