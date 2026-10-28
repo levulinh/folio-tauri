@@ -73,7 +73,7 @@ Status: decided (2026-10-28)
 
 ## D-011 Fake backend fidelity and platform split (Phase 1 Task 11)
 Status: decided (2026-10-28)
-- The fake mirrors the core's `apply` validation order and all-or-nothing semantics (works on a copy, commits at the end), search tokenising/ranking/snippets and the 50-page search limit. Sibling order is array order; `orderKey` of pages is a synthetic zero-padded index (the UI never interprets it). Dropdown chips contribute no search text in the fake (the core resolves option names; option sets arrive in a later phase).
+- The fake mirrors the core's `apply` validation order and all-or-nothing semantics (works on a copy, commits at the end), search tokenising and matching, and the 50-page search limit. It does not mirror ranking ties or snippet-block choice: the core orders by title hit, then bm25, then title, then id, and snippets the best-ranked matching block; the fake orders by title hit, then page id, and snippets the first matching block. Sibling order is array order; `orderKey` of pages is a synthetic zero-padded index (the UI never interprets it). Dropdown chips contribute no search text in the fake (the core resolves option names; option sets arrive in a later phase).
 - `ui/src/platform/menuEvents.ts` and `quit.ts` hold the only `listen`/quit-flow code; `tauriBackend.ts` delegates to them. `listenFlushRequest` always calls `quit_ready` after the flush, even if the flush throws (the shell has its own 3 s timeout, so a failing flush must not block quitting).
 
 ## D-012 App shell and page tree (Phase 1 Task 12)
