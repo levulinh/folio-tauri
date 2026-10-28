@@ -3,16 +3,17 @@ import type { FolioSlashItem } from "./slashMenu";
 
 /**
  * BlockNote's own suggestion-menu primitives (Mantine-styled), each item wrapped in a div that
- * carries the test ids: the primitives reject extra props. The wrapper has no styling of its own.
+ * carries the test ids: the primitives reject extra props. The wrappers have no styling and `role="none"`,
+ * so the listbox/option structure stays intact for assistive tech.
  */
 export function SlashMenuComponent({ items, loadingState, selectedIndex, onItemClick }: SuggestionMenuProps<DefaultReactSuggestionItem>) {
   const Components = useComponentsContext()!;
   const dict = useDictionary();
   return (
-    <div data-testid="slash-menu">
+    <div role="none" data-testid="slash-menu">
       <Components.SuggestionMenu.Root id="bn-suggestion-menu" className="bn-suggestion-menu">
         {(items as FolioSlashItem[]).map((item, i) => (
-          <div key={item.key} data-testid="slash-item" data-key={item.key}>
+          <div key={item.key} role="none" data-testid="slash-item" data-key={item.key}>
             <Components.SuggestionMenu.Item
               className="bn-suggestion-menu-item"
               item={item}

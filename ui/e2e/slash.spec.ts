@@ -25,6 +25,7 @@ test("slash opens the menu with English labels", async ({ page }) => {
   await page.keyboard.type("/");
   await expect(menu(page)).toBeVisible();
   await expect(items(page)).toHaveText(TITLES);
+  await expect(page.getByRole("listbox").getByRole("option")).toHaveCount(TITLES.length);
 });
 
 test("typing `:smile` opens no emoji grid menu (the picker is disabled)", async ({ page }) => {
