@@ -220,7 +220,7 @@ mod tests {
     }
 
     #[test]
-    fn blocking_reports_a_poisoned_lock_without_panicking() {
+    fn blocking_recovers_from_a_poisoned_lock() {
         let state = AppState::new(folio_core::Store::open_in_memory().unwrap());
         let store = std::sync::Arc::clone(&state.store);
         let _ = std::thread::spawn(move || {
@@ -228,8 +228,21 @@ mod tests {
             panic!("poison the lock");
         })
         .join();
-        let err = tauri::async_runtime::block_on(blocking(&state, |s| s.list_pages())).unwrap_err();
+        assert!(state.store.is_poisoned());
+        let pages = tauri::async_runtime::block_on(blocking(&state, |s| s.list_pages())).unwrap();
+        assert!(pages.is_empty());
+    }
+
+    #[test]
+    fn blocking_reports_a_panic_and_keeps_working() {
+        let state = AppState::new(folio_core::Store::open_in_memory().unwrap());
+        let err = tauri::async_runtime::block_on(blocking(&state, |_| -> folio_core::Result<()> {
+            panic!("boom")
+        }))
+        .unwrap_err();
         assert_eq!(err.code, "db");
-        assert_eq!(err.message, "store lock poisoned");
+        assert_eq!(err.message, "internal error: boom");
+        let next = tauri::async_runtime::block_on(blocking(&state, |s| s.list_pages()));
+        assert!(next.is_ok());
     }
 }

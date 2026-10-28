@@ -8,11 +8,16 @@ use crate::quit;
 const QUIT_ID: &str = "quit";
 
 /// Menu item id → event name emitted to the UI.
+const NEW_PAGE_ID: &str = "new-page";
+const NEW_SUBPAGE_ID: &str = "new-subpage";
+const FIND_ID: &str = "find";
+const SEARCH_ID: &str = "search";
+
 const EVENT_ITEMS: &[(&str, &str)] = &[
-    ("new-page", "menu:new-page"),
-    ("new-subpage", "menu:new-subpage"),
-    ("find", "menu:find"),
-    ("search", "menu:search"),
+    (NEW_PAGE_ID, "menu:new-page"),
+    (NEW_SUBPAGE_ID, "menu:new-subpage"),
+    (FIND_ID, "menu:find"),
+    (SEARCH_ID, "menu:search"),
 ];
 
 pub fn build(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
@@ -33,10 +38,10 @@ pub fn build(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
         "Tệp",
         true,
         &[
-            &MenuItem::with_id(app, "new-page", "Trang mới", true, Some("CmdOrCtrl+N"))?,
+            &MenuItem::with_id(app, NEW_PAGE_ID, "Trang mới", true, Some("CmdOrCtrl+N"))?,
             &MenuItem::with_id(
                 app,
-                "new-subpage",
+                NEW_SUBPAGE_ID,
                 "Trang con mới",
                 true,
                 Some("CmdOrCtrl+Shift+N"),
@@ -56,10 +61,10 @@ pub fn build(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
             &PredefinedMenuItem::paste(app, Some("Dán"))?,
             &PredefinedMenuItem::select_all(app, Some("Chọn tất cả"))?,
             &PredefinedMenuItem::separator(app)?,
-            &MenuItem::with_id(app, "find", "Tìm trong trang", true, Some("CmdOrCtrl+F"))?,
+            &MenuItem::with_id(app, FIND_ID, "Tìm trong trang", true, Some("CmdOrCtrl+F"))?,
             &MenuItem::with_id(
                 app,
-                "search",
+                SEARCH_ID,
                 "Tìm mọi trang",
                 true,
                 Some("CmdOrCtrl+Shift+F"),

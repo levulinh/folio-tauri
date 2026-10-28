@@ -13,11 +13,14 @@ fn main() {
         .setup(|app| {
             let dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&dir)?;
-            let store = folio_core::Store::open(&dir.join("folio.sqlite"), &dir.join("assets"))?;
+            let db_path = dir.join("folio.sqlite");
+            let store = folio_core::Store::open(&db_path, &dir.join("assets"))
+                .map_err(|e| format!("cannot open {}: {e}", db_path.display()))?;
             app.manage(state::AppState::new(store));
+            quit::install_dock_quit_hook(app.handle());
             Ok(())
         })
         .build(tauri::generate_context!())
-        .expect("error while building Folio");
+        .expect("error while building Folio (see the message above for the cause)");
     app.run(|handle, event| quit::handle_run_event(handle, &event));
 }
