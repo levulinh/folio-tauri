@@ -11,7 +11,7 @@ fn main() {
         .menu(menu::build)
         .on_menu_event(menu::on_event)
         .setup(|app| {
-            let dir = app.path().app_data_dir()?;
+            let dir = state::data_dir(&app.path().app_data_dir()?, cfg!(debug_assertions));
             std::fs::create_dir_all(&dir)?;
             let db_path = dir.join("folio.sqlite");
             let store = folio_core::Store::open(&db_path, &dir.join("assets"))

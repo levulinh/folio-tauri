@@ -6,6 +6,16 @@ use std::sync::{Arc, Mutex, MutexGuard};
 use folio_core::error::ErrorPayload;
 use folio_core::Store;
 
+/// Where the database and assets live: debug builds (`npm run dev`) use `<app data>/dev` so they
+/// can never write the installed app's database (decisions D-018).
+pub fn data_dir(app_data_dir: &std::path::Path, debug_build: bool) -> std::path::PathBuf {
+    if debug_build {
+        app_data_dir.join("dev")
+    } else {
+        app_data_dir.to_path_buf()
+    }
+}
+
 /// Shared app state. The store lives behind a mutex that is only ever locked inside
 /// `spawn_blocking` closures (see [`blocking`]), never across an await.
 pub struct AppState {
@@ -71,5 +81,18 @@ where
     match joined {
         Ok(result) => result,
         Err(e) => Err(error_payload("db", format!("blocking task failed: {e}"))),
+    }
+}
+
+#[cfg(test)]
+mod data_dir_tests {
+    use super::data_dir;
+    use std::path::Path;
+
+    #[test]
+    fn debug_builds_use_a_dev_subdirectory() {
+        let base = Path::new("/data/app");
+        assert_eq!(data_dir(base, true), Path::new("/data/app/dev"));
+        assert_eq!(data_dir(base, false), base);
     }
 }

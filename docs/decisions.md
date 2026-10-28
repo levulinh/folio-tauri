@@ -136,3 +136,7 @@ Status: decided (2026-10-29)
 - `App` registers `backend.onFlushRequest(flushForQuit)` once (effect cleanup unsubscribes, so StrictMode's double mount leaves one listener). `flushForQuit` (`ui/src/state/quitFlush.ts`) awaits `flushAll()` (every tab pipeline) and every mounted `PageTitle`'s "save pending rename now", which is registered in a small set and removed on unmount. A title still inside its 400 ms debounce is therefore stored before `quit_ready`.
 - A page created from the menu or the sidebar button (`createAndOpenPage`) asks `uiStore.titleFocusPageId` for focus; the matching `PageTitle` takes focus on mount and clears the request. Pages opened by clicking do not steal the caret.
 - The fake backend gained `emitFlushRequest()` (awaits all subscribers) so Playwright can simulate the shell's `flush-request`.
+
+## D-018 Debug builds use their own data directory (Phase 1 final review)
+Status: decided (2026-10-29)
+- `cfg!(debug_assertions)` builds (`npm run dev`, `cargo run`) store the database and assets under `<app_data_dir>/dev/`; release builds use `<app_data_dir>/`. A developer run can therefore never write, migrate or corrupt the installed app's `folio.sqlite`. Consequence: notes made in dev mode are not visible in the installed app and vice versa.
