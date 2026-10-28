@@ -12,6 +12,7 @@ vi.mock("../state/pageActions", () => ({
 vi.mock("./PageTree", () => ({ PageTree: () => <div data-testid="tree" /> }));
 
 import { usePageStore } from "../state/pageStore";
+const realOpen = usePageStore.getState().open;
 import { Sidebar } from "./Sidebar";
 
 const hit = (id: string): SearchHit => ({ pageId: id, pageTitle: id, snippet: "", titleMatch: true });
@@ -25,6 +26,7 @@ beforeEach(() => {
   usePageStore.setState({ open } as never);
 });
 afterEach(() => {
+  usePageStore.setState({ open: realOpen } as never);
   cleanup();
   vi.useRealTimers();
 });
@@ -69,5 +71,25 @@ describe("Sidebar Enter", () => {
       await vi.advanceTimersByTimeAsync(0);
     });
     expect(open).not.toHaveBeenCalled();
+  });
+});
+
+describe("Sidebar search clear", () => {
+  it("returns to the page tree when a type=search input is cleared natively (WebKit clear button)", async () => {
+    render(<Sidebar />);
+    expect(input().getAttribute("type")).toBe("search");
+    fireEvent.change(input(), { target: { value: "abc" } });
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(300);
+    });
+    expect(screen.queryByTestId("tree")).toBeNull();
+
+    // WebKit's clear button empties the field and fires `input` + `search` events, no key events.
+    await act(async () => {
+      fireEvent.change(input(), { target: { value: "" } });
+      fireEvent(input(), new Event("search", { bubbles: true }));
+      await vi.advanceTimersByTimeAsync(300);
+    });
+    expect(screen.getByTestId("tree")).toBeTruthy();
   });
 });
