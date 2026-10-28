@@ -5,7 +5,10 @@ import type { SearchHit } from "../backend/generated/SearchHit";
 const search = vi.fn<(q: string) => Promise<SearchHit[]>>();
 const open = vi.fn<(id: string) => Promise<void>>(() => Promise.resolve());
 vi.mock("../backend", () => ({ backend: { search: (q: string) => search(q), onMenu: () => () => {} } }));
-vi.mock("../state/pageActions", () => ({ createAndOpenPage: vi.fn() }));
+vi.mock("../state/pageActions", () => ({
+  createAndOpenPage: vi.fn(),
+  openPage: (id: string) => void open(id),
+}));
 vi.mock("./PageTree", () => ({ PageTree: () => <div data-testid="tree" /> }));
 
 import { usePageStore } from "../state/pageStore";

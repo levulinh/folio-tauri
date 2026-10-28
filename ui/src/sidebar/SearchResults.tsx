@@ -1,11 +1,11 @@
 import type { SearchHit } from "../backend/generated/SearchHit";
 import { vi } from "../i18n/vi";
+import { openPage } from "../state/pageActions";
 import { usePageStore } from "../state/pageStore";
-import { reportError } from "../state/uiStore";
 import styles from "./SearchResults.module.css";
 
 export function openHit(hit: SearchHit): void {
-  usePageStore.getState().open(hit.pageId).catch(reportError);
+  openPage(hit.pageId);
 }
 
 /** Result list shown in place of the tree. Snippets are rendered as plain text. */
