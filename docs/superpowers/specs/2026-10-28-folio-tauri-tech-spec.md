@@ -439,13 +439,13 @@ TS_RS_EXPORT_DIR = { value = "ui/src/backend/generated", relative = true }
 
 ### 4.4 Menus (Vietnamese) and shortcuts
 
-macOS menu bar built in `menu.rs`. **The Edit menu must use Tauri's predefined items** (Undo, Redo, Cut, Copy, Paste, Select All) — without them ⌘C/⌘V/⌘Z do not work in the webview on macOS.
+macOS menu bar built in `menu.rs`. **The Edit menu must use Tauri's predefined items for Cut, Copy, Paste and Select All** — without them ⌘C/⌘V do not work in the webview on macOS. Undo/Redo are the exception: they are custom items "Hoàn tác" `⌘Z` / "Làm lại" `⇧⌘Z` emitting `menu:undo`/`menu:redo`, routed by the UI (D-024, D-026), because native undo maps 1:N onto ProseMirror history and wiped documents.
 
 | Menu | Items (label → accelerator → action) |
 |---|---|
 | Folio | Giới thiệu Folio; Cài đặt… `⌘,` → event `menu:settings`; Ẩn Folio `⌘H`; Thoát Folio `⌘Q` — a **custom** item (not the predefined Quit, which may exit without a preventable `ExitRequested`) that starts the quit flow in §4.5 |
 | Tệp | Trang mới `⌘N` → `menu:new-page`; Trang con mới `⇧⌘N` → `menu:new-subpage`; Tab mới `⌥⌘T` → `menu:new-tab`; Xuất Markdown… `⇧⌘E` → `menu:export-md`; In / Xuất PDF… `⌘P` → `menu:print` |
-| Sửa | predefined Hoàn tác, Làm lại, Cắt, Sao chép, Dán, Chọn tất cả; separator; Tìm trong trang `⌘F` → `menu:find`; Tìm mọi trang `⇧⌘F` → `menu:search` |
+| Sửa | custom Hoàn tác `⌘Z` → `menu:undo`, Làm lại `⇧⌘Z` → `menu:redo`; predefined Cắt, Sao chép, Dán, Chọn tất cả; separator; Tìm trong trang `⌘F` → `menu:find`; Tìm mọi trang `⇧⌘F` → `menu:search` |
 | Xem | Bình luận `⌥⌘C` → `menu:toggle-comments`; Lịch sử phiên bản `⌥⌘H` → `menu:toggle-history` |
 
 Menu actions are emitted as events with those names; the UI subscribes in `ui/src/platform/menuEvents.ts`.
