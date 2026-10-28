@@ -45,6 +45,75 @@ describe("convert", () => {
     expect(Object.keys(stored[0]!)).toEqual(["type", "props", "content"]);
   });
 
+  it("keeps ids and order through three levels of children", () => {
+    const deep: BlockNode[] = [
+      {
+        id: "l1",
+        type: "bulletListItem",
+        props: {},
+        content: text("một"),
+        children: [
+          {
+            id: "l2",
+            type: "bulletListItem",
+            props: {},
+            content: text("hai"),
+            children: [{ id: "l3", type: "bulletListItem", props: {}, content: text("ba"), children: [] }],
+          },
+          { id: "l2b", type: "bulletListItem", props: {}, content: text("hai b"), children: [] },
+        ],
+      },
+    ];
+    const doc = roundTrip(deep);
+    expect(doc[0]!.children.map((b) => b.id)).toEqual(["l2", "l2b"]);
+    expect(doc[0]!.children[0]!.children.map((b) => b.id)).toEqual(["l3"]);
+    expect((doc[0]!.children[0]!.children[0]!.content as { text: string }[])[0]!.text).toBe("ba");
+  });
+
+  // The code mark excludes every other mark in the schema, so bold+italic+code on one run is not representable.
+  it("keeps bold+italic and code runs and a link run", () => {
+    const styled: BlockNode[] = [
+      {
+        id: "s",
+        type: "paragraph",
+        props: {},
+        content: [
+          { type: "text", text: "đậm nghiêng", styles: { bold: true, italic: true } },
+          { type: "text", text: "mã", styles: { code: true } },
+          { type: "text", text: " rồi ", styles: {} },
+          { type: "link", href: "https://example.com/a?b=1", content: [{ type: "text", text: "liên kết", styles: { bold: true } }] },
+        ],
+        children: [],
+      },
+    ];
+    const content = toStored(roundTrip(styled)[0]!).content as Record<string, unknown>[];
+    expect(content[0]).toMatchObject({ type: "text", text: "đậm nghiêng", styles: { bold: true, italic: true } });
+    expect(content[1]).toMatchObject({ type: "text", text: "mã", styles: { code: true } });
+    expect(content[2]).toMatchObject({ type: "text", text: " rồi " });
+    expect(content[3]).toMatchObject({
+      type: "link",
+      href: "https://example.com/a?b=1",
+      content: [{ type: "text", text: "liên kết", styles: { bold: true } }],
+    });
+  });
+
+  it("keeps a checked check item checked and an unchecked one unchecked", () => {
+    const doc = roundTrip([
+      { id: "on", type: "checkListItem", props: { checked: true }, content: text("xong"), children: [] },
+      { id: "off", type: "checkListItem", props: { checked: false }, content: text("chưa"), children: [] },
+    ]);
+    expect(toStored(doc[0]!).props).toMatchObject({ checked: true });
+    expect(toStored(doc[1]!).props).toMatchObject({ checked: false });
+  });
+
+  it("maps null stored content to undefined for the editor and back to a non-undefined stored value", () => {
+    const blocks = toEditorBlocks([{ id: "n", type: "paragraph", props: {}, content: null, children: [] }]);
+    expect(blocks[0]!.content).toBeUndefined();
+    const stored = toStored(roundTrip([{ id: "n", type: "paragraph", props: {}, content: null, children: [] }])[0]!);
+    expect(stored.content).not.toBeUndefined();
+    expect(toStored({ id: "x", type: "paragraph", props: {}, content: null, children: [] } as never).content).toBeNull();
+  });
+
   it("toStored maps missing content to null", () => {
     expect(toStored({ id: "x", type: "table", props: {}, content: undefined, children: [] } as never).content).toBeNull();
   });
