@@ -208,4 +208,9 @@ fn table_cell_text_is_searchable() {
     assert_eq!(ids(&hits), [created.page.id.as_str()]);
     assert!(!hits[0].title_match);
     assert!(hits[0].snippet.contains("Hà Nội"), "{}", hits[0].snippet);
+    // A query that crosses the cell's line break finds it too.
+    assert_eq!(
+        ids(&s.search("noi mua", 50).unwrap()),
+        [created.page.id.as_str()]
+    );
 }

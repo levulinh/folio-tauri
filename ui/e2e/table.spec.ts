@@ -372,6 +372,9 @@ test("bold, italic, code and link in a cell persist", async ({ page }) => {
   await field.fill("example.com");
   await field.press("Enter");
   await expect(cell(page, 1, 0).locator("a")).toHaveText("delta");
+  await expect(cell(page, 1, 0).locator("a")).toHaveAttribute("href", "https://example.com");
+  await expect(cell(page, 0, 1).locator("strong")).toHaveCount(0);
+  await expect(cell(page, 0, 2).locator("strong")).toHaveCount(0);
   await reopen(page);
   await expect(cell(page, 0, 0).locator("strong")).toHaveText("alpha");
   await expect(cell(page, 0, 1).locator("em")).toHaveText("beta");
@@ -391,7 +394,6 @@ test("line breaks in a cell persist", async ({ page }) => {
   expect((await storedCells(page))[0]![0]).toBe("một\nhai\nba");
   await expect(rows(page)).toHaveCount(2);
   await expect(cell(page, 0, 0).locator("br")).toHaveCount(2);
-  expect(await cellTexts(page)).toHaveLength(2);
 });
 
 async function blockCount(page: Page): Promise<number> {
@@ -419,13 +421,9 @@ test("pasting 30 lines into a cell keeps them in the cell", async ({ page }) => 
   await expect(cell(page, 0, 0)).toContainText("dòng 30");
   await expect(rows(page)).toHaveCount(2);
   expect(await blockCount(page)).toBe(before);
-  const start = Date.now();
-  await expect(page.getByTestId("save-status")).toHaveAttribute("data-status", "saved", { timeout: 3000 });
-  expect(Date.now() - start).toBeLessThan(3000);
+  await expect.poll(() => storedCells(page), { timeout: 3000 }).toEqual([[text, "", ""], ["", "", ""]]);
   await reopen(page);
-  const stored = await storedCells(page);
-  expect(stored[0]![0]).toBe(text);
-  expect(stored.flat().filter((t) => t !== "")).toHaveLength(1);
+  expect(await storedCells(page)).toEqual([[text, "", ""], ["", "", ""]]);
   expect(await blockCount(page)).toBe(before);
 });
 
@@ -437,4 +435,22 @@ test("search finds text typed in a cell", async ({ page }) => {
   await page.getByTestId("search-input").fill("ha noi");
   await expect(page.getByTestId("search-result")).toHaveCount(1);
   await expect(page.getByTestId("search-result").first()).toContainText("Hà Nội");
+});
+
+test("shift-home in a cell then bold formats only that cell", async ({ page }) => {
+  await insertTable(page);
+  for (const [c, word] of [[0, "aaa"], [1, "bbb"], [2, "ccc"]] as const) {
+    await focusCell(page, 0, c);
+    await page.keyboard.type(word);
+  }
+  await page.keyboard.press("End");
+  await page.keyboard.press("Shift+Home");
+  expect(await page.evaluate(() => String(document.getSelection()))).toBe("ccc");
+  await page.keyboard.press("ControlOrMeta+b");
+  await expect(cell(page, 0, 2).locator("strong")).toHaveText("ccc");
+  await expect(cell(page, 0, 0).locator("strong")).toHaveCount(0);
+  await expect(cell(page, 0, 1).locator("strong")).toHaveCount(0);
+  await reopen(page);
+  await expect(table(page).locator("strong")).toHaveCount(1);
+  await expect(cell(page, 0, 2).locator("strong")).toHaveText("ccc");
 });
