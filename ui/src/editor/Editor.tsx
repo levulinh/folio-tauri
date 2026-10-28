@@ -1,6 +1,6 @@
 import { BlockNoteView } from "@blocknote/mantine";
 import { useCreateBlockNote } from "@blocknote/react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { backend } from "../backend";
 import type { BlockNode } from "../backend/generated/BlockNode";
 import { usePageStore } from "../state/pageStore";
@@ -24,10 +24,11 @@ function useColorScheme(): "light" | "dark" {
 
 function EditorInstance({ blocks }: { blocks: BlockNode[] }) {
   const colorScheme = useColorScheme();
+  const initialContent = useMemo(() => (blocks.length ? toEditorBlocks(blocks) : undefined), [blocks]);
   const editor = useCreateBlockNote({
     schema,
     dictionary,
-    initialContent: blocks.length ? toEditorBlocks(blocks) : undefined,
+    initialContent,
     trailingBlock: true,
     animations: false,
   });
@@ -39,21 +40,25 @@ function EditorInstance({ blocks }: { blocks: BlockNode[] }) {
   return <BlockNoteView editor={editor} theme={colorScheme} data-testid="editor" />;
 }
 
-/** Loads the tab's blocks, then mounts a fresh editor. Remounted per tab via `key`. */
+/**
+ * Loads the tab's blocks, then mounts a fresh editor. Parents also pass `key={tabId}`, but this
+ * component is correct without it: loaded blocks are tagged with their tab and the instance is
+ * keyed by it, so a tabId change never shows (or edits) another tab's content.
+ */
 export function Editor({ tabId }: { tabId: string }) {
-  const [blocks, setBlocks] = useState<BlockNode[] | null>(null);
+  const [loaded, setLoaded] = useState<{ tabId: string; blocks: BlockNode[] } | null>(null);
   useEffect(() => {
     let cancelled = false;
     backend
       .tabLoad(tabId)
-      .then((loaded) => {
-        if (!cancelled) setBlocks(loaded);
+      .then((blocks) => {
+        if (!cancelled) setLoaded({ tabId, blocks });
       })
       .catch(reportError);
     return () => {
       cancelled = true;
     };
   }, [tabId]);
-  if (blocks === null) return null;
-  return <EditorInstance blocks={blocks} />;
+  if (loaded === null || loaded.tabId !== tabId) return null;
+  return <EditorInstance key={tabId} blocks={loaded.blocks} />;
 }

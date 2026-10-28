@@ -28,7 +28,8 @@ export function PageTitle({ pageId }: { pageId: string }) {
     if (!dirty.current) return;
     dirty.current = false;
     const title = latest.current;
-    if (title === (usePagesStore.getState().pages.find((p) => p.id === pageId)?.title ?? "")) return;
+    const page = usePagesStore.getState().pages.find((p) => p.id === pageId);
+    if (!page || page.title === title) return; // deleted mid-debounce: drop silently
     usePagesStore.getState().rename(pageId, title).catch(reportError);
   };
   const saveRef = useRef(save);
@@ -50,7 +51,9 @@ export function PageTitle({ pageId }: { pageId: string }) {
       }}
       onBlur={save}
       onKeyDown={(e) => {
-        if (e.key !== "Enter" || e.nativeEvent.isComposing) return;
+        // WebKit delivers the Enter that commits a Telex/VNI composition after compositionend,
+        // with isComposing false and keyCode 229.
+        if (e.key !== "Enter" || e.nativeEvent.isComposing || e.keyCode === 229) return;
         e.preventDefault();
         save();
         const editor = usePageStore.getState().activeEditor;
