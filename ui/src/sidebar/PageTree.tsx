@@ -5,7 +5,7 @@ import { usePageStore } from "../state/pageStore";
 import { usePagesStore } from "../state/pagesStore";
 import { reportError } from "../state/uiStore";
 import { ConfirmDialog } from "../ui/ConfirmDialog";
-import { useExpandedStore } from "./expanded";
+import { useExpandedStore } from "../state/expanded";
 import { PageTreeItem } from "./PageTreeItem";
 import styles from "./PageTree.module.css";
 

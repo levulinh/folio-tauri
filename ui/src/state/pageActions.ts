@@ -1,5 +1,5 @@
 import { isErrorPayload } from "../backend/Backend";
-import { useExpandedStore } from "../sidebar/expanded";
+import { useExpandedStore } from "./expanded";
 import { usePageStore } from "./pageStore";
 import { usePagesStore } from "./pagesStore";
 import { reportError, useUiStore } from "./uiStore";
