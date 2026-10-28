@@ -7,6 +7,7 @@ import { useUiStore } from "../state/uiStore";
 import { toStored } from "./convert";
 import { createSavePipeline } from "./savePipeline";
 import { schema } from "./schema";
+import { withoutFirst, type TableContent as LooseTable } from "./table/tableContent";
 
 const SEEDS = 24;
 const ACTIONS = 60;
@@ -100,7 +101,7 @@ async function runSeed(seed: number): Promise<void> {
   });
 
   const editTable = (action: number): void => {
-    const tables = tablesOf(editor.document).filter((t) => action !== 16 || tableContentOf(t).headerRows);
+    const tables = tablesOf(editor.document).filter((t) => action < 16 || (action === 16 ? tableContentOf(t).headerRows : tableContentOf(t).headerCols));
     if (tables.length === 0) return;
     const table = pick(tables);
     const content = tableContentOf(table);
@@ -110,10 +111,11 @@ async function runSeed(seed: number): Promise<void> {
     const c = Math.floor(rnd() * width);
     let next: unknown[][];
     let widths = content.columnWidths as unknown[] | undefined;
-    if (action === 16) {
-      // same transformation as deleteFirstKeepingHeader (FolioTableHandles): drop row 0, keep a header
-      if (rows.length < 2) return;
-      editor.updateBlock(table.id, { content: { ...content, rows: content.rows.slice(1), headerRows: 1 } } as never);
+    if (action === 16 || action === 17) {
+      // the shared helper behind deleteFirstKeepingHeader (FolioTableHandles): drop row/column 0, keep a header
+      const orientation = action === 16 ? "row" : "column";
+      if ((orientation === "row" ? rows.length : width) < 2) return;
+      editor.updateBlock(table.id, { content: { type: "tableContent", ...withoutFirst(content as unknown as LooseTable, orientation) } } as never);
       return;
     }
     if (action === 11) next = [...rows.slice(0, r + 1), Array.from({ length: width }, () => word()), ...rows.slice(r + 1)];
@@ -135,7 +137,7 @@ async function runSeed(seed: number): Promise<void> {
   for (let i = 0; i < ACTIONS; i += 1) {
     const blocks = flatten(editor.document);
     const target = pick(blocks);
-    const action = Math.floor(rnd() * 17);
+    const action = Math.floor(rnd() * 18);
     try {
       switch (action) {
         case 0: // insert a block with children
@@ -206,7 +208,8 @@ async function runSeed(seed: number): Promise<void> {
         case 14: // edit a cell's text
           editTable(action);
           break;
-        case 16: // delete row 0 of a header table (app rule D-029)
+        case 16: // delete row 0 of a header-row table (app rule D-029)
+        case 17: // delete column 0 of a header-column table
           editTable(action);
           break;
         default: {

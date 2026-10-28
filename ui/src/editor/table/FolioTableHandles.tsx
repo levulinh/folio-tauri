@@ -13,8 +13,8 @@ import {
   type TableHandleProps,
 } from "@blocknote/react";
 import { useEffect, useRef } from "react";
+import { withoutFirst, type TableContent } from "./tableContent";
 
-type TableContent = { rows: { cells: unknown[] }[]; columnWidths?: (number | undefined)[]; headerRows?: number; headerCols?: number };
 type TableBlock = { type: string; content: TableContent };
 /** The two editor calls the header-keeping delete needs, typed loosely (BlockNote's generic schema types do not narrow here). */
 type TableEditor = { getBlock(id: string): TableBlock | undefined; updateBlock(block: TableBlock, update: { content: TableContent }): void };
@@ -26,17 +26,7 @@ type TableEditor = { getBlock(id: string): TableBlock | undefined; updateBlock(b
 function deleteFirstKeepingHeader(editor: TableEditor, blockId: string, orientation: "row" | "column") {
   const fresh = editor.getBlock(blockId);
   if (!fresh || fresh.type !== "table") return;
-  const content:  { rows: { cells: unknown[] }[]; columnWidths?: (number | undefined)[]; headerRows?: number; headerCols?: number } = fresh.content;
-  const next =
-    orientation === "row"
-      ? { ...content, rows: content.rows.slice(1), headerRows: 1 }
-      : {
-          ...content,
-          rows: content.rows.map((r) => ({ ...r, cells: r.cells.slice(1) })),
-          columnWidths: content.columnWidths?.slice(1),
-          headerCols: 1,
-        };
-  editor.updateBlock(fresh, { content: next });
+  editor.updateBlock(fresh, { content: withoutFirst(fresh.content, orientation) });
 }
 
 /** Delete row / column; the table's last row or column removes the whole block (D-029). */
@@ -77,7 +67,10 @@ function HeaderToggle({ orientation }: TableHandleMenuProps) {
   return (
     <Components.Generic.Menu.Item
       checked={isHeader}
-      onClick={() => editor.updateBlock(block, { ...block, content: { ...block.content, [key]: isHeader ? undefined : 1 } as never })}
+      onClick={() => {
+        const fresh = editor.getBlock(block.id) ?? block; // not the hover snapshot: it may predate the last edit
+        editor.updateBlock(fresh, { ...fresh, content: { ...fresh.content, [key]: isHeader ? undefined : 1 } as never });
+      }}
     >
       {orientation === "row" ? dict.drag_handle.header_row_menuitem : dict.drag_handle.header_column_menuitem}
     </Components.Generic.Menu.Item>
