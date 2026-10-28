@@ -230,14 +230,14 @@ docs/manual-checklists/phase-1.md
 - Consumes: the `Store` API of Tasks 6–9.
 - Produces:
   - Commands (exact names, §4.2, Phase 1 subset): `pages_list`, `page_create(parentId?, afterId?) -> CreatedPage`, `page_rename(id, title) -> PageMeta`, `page_delete(id) -> string[]`, `tabs_list(pageId)`, `tab_create(pageId, name)`, `tab_rename(id, name)`, `tab_move(id, prevSiblingId?)`, `tab_delete(id)`, `tab_load(tabId) -> BlockNode[]`, `tab_apply(tabId, ops) -> ApplyResult`, `search(query) -> SearchHit[]` (limit 50), `quit_ready()`. Errors: `Err(ErrorPayload)`.
-  - `pub const COMMANDS: &[&str]` listing the above; test `commands_match_handler` (compares with a second literal array placed directly next to `generate_handler!` — keep both in `commands.rs` via a `macro_rules! command_list` that expands to both, so they cannot drift); test `export_command_names` writing `ui/src/backend/generated/commands.ts` as `export const Commands = { pagesList: "pages_list", … } as const;` (camelCase key from snake_case name).
+  - `pub const COMMANDS: &[&str]` listing the above; test `commands_match_handler` (compares with a second literal array placed directly next to `generate_handler!` — keep both in `commands.rs` via a `macro_rules! command_list` that expands to both, so they cannot drift); test `export_commands_ts_file` writing `ui/src/backend/generated/commands.ts` as `export const Commands = { pagesList: "pages_list", … } as const;` (camelCase key from snake_case name).
   - Events emitted to the UI: `menu:new-page`, `menu:new-subpage`, `menu:find`, `menu:search`, `flush-request`.
   - `AppState { store: Arc<Mutex<Store>>, quitting: AtomicBool }`; helper `async fn blocking<T>(state, f: impl FnOnce(&mut Store) -> folio_core::Result<T>) -> Result<T, ErrorPayload>` using `tauri::async_runtime::spawn_blocking`.
 - Menus: §4.4 with only these enabled in Phase 1: Folio menu (Giới thiệu, Ẩn, custom Thoát Folio ⌘Q), Tệp → Trang mới ⌘N, Trang con mới ⇧⌘N; Sửa → predefined Hoàn tác/Làm lại/Cắt/Sao chép/Dán/Chọn tất cả, Tìm trong trang ⌘F, Tìm mọi trang ⇧⌘F. Items from later phases are not added yet.
 - Quit: §4.5 exactly (custom ⌘Q item, CloseRequested, ExitRequested, `quitting` guard, 3 s timer, `quit_ready`).
 - Data paths: `app.path().app_data_dir()` → create dir → `Store::open(dir/"folio.sqlite", dir/"assets")`.
 
-- [ ] **Step 1: Failing tests:** `commands_match_handler`; `export_command_names` (file exists and contains `pagesList: "pages_list"` and `tabApply: "tab_apply"`).
+- [ ] **Step 1: Failing tests:** `commands_match_handler`; `export_commands_ts_file` (file exists and contains `pagesList: "pages_list"` and `tabApply: "tab_apply"`).
 - [ ] **Step 2: Run** `cargo test -p folio-app` → FAIL. **Step 3: Implement.** **Step 4: Run** → PASS; `bash scripts/check.sh` → exit 0.
 - [ ] **Step 5: Manual smoke:** `npm run dev`; menu bar shows Folio / Tệp / Sửa with Vietnamese labels; ⌘Q quits within 3 s (the UI does not answer `flush-request` yet, so the timer path is exercised).
 - [ ] **Step 6: Commit** — `feat(app): Tauri commands, menus and quit flow`.

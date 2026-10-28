@@ -104,8 +104,8 @@ async function runSeed(seed: number): Promise<void> {
           editor.moveBlocksDown();
           break;
         case 5:
-          // never empty the document: BlockNote then creates an id-less placeholder block (a mounted editor assigns it an id)
-          if (!(editor.document.length === 1 && editor.document[0]!.id === target.id)) editor.removeBlocks([target.id]);
+          // removing the last block is allowed: the editor is mounted (getChanges() throws only on an unmounted editor), so the replacement placeholder block gets an id
+          editor.removeBlocks([target.id]);
           break;
         case 6:
           editor.updateBlock(target.id, { type: pick(TYPES) as "paragraph" });

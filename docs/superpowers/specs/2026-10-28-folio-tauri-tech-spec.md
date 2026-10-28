@@ -433,7 +433,7 @@ TS_RS_EXPORT_DIR = { value = "ui/src/backend/generated", relative = true }
 
 (ts-rs resolves `export_to` relative to `TS_RS_EXPORT_DIR`, which otherwise defaults to `./bindings` inside the crate.) `BlockNode.props`/`content` are typed on the Rust side with `#[ts(type = "Record<string, unknown>")]` / `#[ts(type = "unknown")]`; the UI casts them to BlockNote types in one place (`ui/src/editor/convert.ts`).
 
-**Command names are generated too.** `folio-app` has one `pub const COMMANDS: &[&str]` listing every command in §4.2, a test asserting it equals the list passed to `generate_handler!` (keep both in `commands.rs`, next to each other), and a test `export_command_names` that writes `ui/src/backend/generated/commands.ts` as `export const Commands = { pagesList: "pages_list", … } as const;`. `tauriBackend.ts` uses only `Commands.x`, never a string literal.
+**Command names are generated too.** `folio-app` has one `pub const COMMANDS: &[&str]` listing every command in §4.2, a test asserting it equals the list passed to `generate_handler!` (keep both in `commands.rs`, next to each other), and a test `export_commands_ts_file` that writes `ui/src/backend/generated/commands.ts` as `export const Commands = { pagesList: "pages_list", … } as const;`. `tauriBackend.ts` uses only `Commands.x`, never a string literal.
 
 **The one way to regenerate:** `cargo test --workspace export_` (ts-rs exports during `cargo test`; the command-names test has the same prefix). `npm run -w ui gen` runs exactly that. `scripts/check.sh` runs it and then `git diff --exit-code ui/src/backend/generated` — and first asserts the folder is non-empty, so a wrong path fails instead of passing silently. Remove the `gen-bindings` example mentioned in §1.3.
 
