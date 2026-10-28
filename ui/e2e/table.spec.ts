@@ -186,6 +186,51 @@ test("one undo reverts an added row and the store matches", async ({ page }) => 
   expect(await storedTable(page)).toMatchObject({ rows: 2, cols: 3 });
 });
 
+test("one undo reverts the bottom (+) button without clicking into the table first", async ({ page }) => {
+  await insertTable(page);
+  await settle(page);
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur()); // nothing focused: the click is the first interaction
+  await cell(page, 1, 1).hover();
+  const addRow = page.locator(".bn-extend-button-add-remove-rows");
+  await expect(addRow).toBeVisible();
+  await addRow.click();
+  await expect(rows(page)).toHaveCount(3);
+  await settle(page);
+  expect(await storedTable(page)).toMatchObject({ rows: 3, cols: 3 });
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect(rows(page)).toHaveCount(2);
+  await settle(page);
+  expect(await storedTable(page)).toMatchObject({ rows: 2, cols: 3 });
+});
+
+test("one undo restores a deleted row in the store", async ({ page }) => {
+  await insertTable(page);
+  await settle(page);
+  await openRowMenu(page, 1);
+  await choose(page, "Xoá hàng");
+  await expect(rows(page)).toHaveCount(1);
+  await settle(page);
+  expect(await storedTable(page)).toMatchObject({ rows: 1, cols: 3 });
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect(rows(page)).toHaveCount(2);
+  await settle(page);
+  expect(await storedTable(page)).toMatchObject({ rows: 2, cols: 3 });
+});
+
+test("one undo reverts an added column in the store", async ({ page }) => {
+  await insertTable(page);
+  await settle(page);
+  await openColMenu(page, 2);
+  await choose(page, "Thêm cột bên phải");
+  await expect(cols(page)).toHaveCount(4);
+  await settle(page);
+  expect(await storedTable(page)).toMatchObject({ rows: 2, cols: 4 });
+  await page.keyboard.press("ControlOrMeta+z");
+  await expect(cols(page)).toHaveCount(3);
+  await settle(page);
+  expect(await storedTable(page)).toMatchObject({ rows: 2, cols: 3 });
+});
+
 /** [row, col] of the table cell holding the caret, or null when the caret is outside any cell. */
 async function caretCell(page: Page): Promise<[number, number] | null> {
   return page.evaluate(() => {

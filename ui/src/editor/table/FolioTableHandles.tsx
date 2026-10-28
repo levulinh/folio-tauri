@@ -10,6 +10,7 @@ import {
   useExtension,
   useExtensionState,
   type TableHandleMenuProps,
+  type ExtendButtonProps,
   type TableHandleProps,
 } from "@blocknote/react";
 import { useEffect, useRef } from "react";
@@ -115,9 +116,22 @@ function FolioTableHandle(props: TableHandleProps) {
   );
 }
 
+/**
+ * BlockNote's (+) edge button, then focus the editor: the click lands outside the contenteditable and nothing else focuses it, so a
+ * ⌘Z right after it would go to the page instead of the editor. The span's bubbling `onClick` runs after the button's own.
+ */
+function FolioExtendButton(props: ExtendButtonProps) {
+  const editor = useBlockNoteEditor();
+  return (
+    <span style={{ display: "contents" }} onClick={() => editor.focus()}>
+      <ExtendButton {...props} />
+    </span>
+  );
+}
+
 const NoCellHandle = () => null;
 
 /** BlockNote's table handles with Folio's menus; the cell menu (colour / split) is off. */
 export function FolioTableHandles() {
-  return <TableHandlesController tableHandle={FolioTableHandle} tableCellHandle={NoCellHandle} extendButton={ExtendButton} />;
+  return <TableHandlesController tableHandle={FolioTableHandle} tableCellHandle={NoCellHandle} extendButton={FolioExtendButton} />;
 }
