@@ -24,5 +24,8 @@ export function titleFlushCount(): number {
 /** Everything that must reach the database before the app exits: pending title renames and every tab's blocks. */
 export async function flushForQuit(): Promise<void> {
   const started = [...titleFlushers].map((f) => f());
-  await Promise.all([...started, ...renamesInFlight, flushAll()]);
+  // allSettled: one failing save must not end the wait before the others have finished.
+  const results = await Promise.allSettled([...started, ...renamesInFlight, flushAll()]);
+  const failed = results.find((r): r is PromiseRejectedResult => r.status === "rejected");
+  if (failed) throw failed.reason;
 }
