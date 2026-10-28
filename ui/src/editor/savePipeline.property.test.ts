@@ -44,6 +44,33 @@ const normaliseStored = (nodes: BlockNode[]): unknown =>
     JSON.stringify(nodes.map((n) => ({ id: n.id, type: n.type, props: n.props, content: n.content, children: normaliseStored(n.children) }))),
   );
 
+type TableContent = { type: "tableContent"; rows: { cells: unknown[] }[]; columnWidths?: unknown; headerRows?: number; headerCols?: number };
+const tablesOf = (blocks: Doc): Flat[] => flatten(blocks).filter((b) => b.type === "table");
+const tableContentOf = (b: Flat): TableContent => b.content as unknown as TableContent;
+const cellInline = (cell: unknown): unknown => (Array.isArray(cell) ? cell : (cell as { content: unknown }).content);
+const cellText = (cell: unknown): string =>
+  (cellInline(cell) as { type: string; text?: string; content?: { text?: string }[] }[])
+    .map((n) => (n.type === "link" ? (n.content ?? []).map((c) => c.text ?? "").join("") : (n.text ?? "")))
+    .join("");
+
+/** Explicit table view (rows x cells inline text and shape, header flags, widths) so a stored/editor mismatch names the table. */
+function tableShape(content: unknown): unknown {
+  const t = content as TableContent;
+  return JSON.parse(
+    JSON.stringify({
+      rows: t.rows.map((r) => r.cells.map((c) => ({ text: cellText(c), inline: cellInline(c) }))),
+      headerRows: t.headerRows ?? null,
+      headerCols: t.headerCols ?? null,
+      columnWidths: t.columnWidths ?? null,
+    }),
+  );
+}
+const tableShapes = (nodes: { id: string; type: string; content: unknown; children: unknown[] }[]): unknown[] =>
+  nodes.flatMap((n) => [
+    ...(n.type === "table" ? [{ id: n.id, shape: tableShape(n.content) }] : []),
+    ...tableShapes(n.children as never),
+  ]);
+
 beforeEach(() => {
   vi.useFakeTimers();
   useUiStore.setState({ toasts: [] });
@@ -68,10 +95,31 @@ async function runSeed(seed: number): Promise<void> {
     onError: (e) => errors.push(e),
   });
 
+  const editTable = (action: number): void => {
+    const tables = tablesOf(editor.document);
+    if (tables.length === 0) return;
+    const table = pick(tables);
+    const content = tableContentOf(table);
+    const rows = content.rows.map((r) => r.cells);
+    const width = rows[0]?.length ?? 1;
+    const r = Math.floor(rnd() * rows.length);
+    const c = Math.floor(rnd() * width);
+    let next: unknown[][];
+    if (action === 11) next = [...rows.slice(0, r + 1), Array.from({ length: width }, () => word()), ...rows.slice(r + 1)];
+    else if (action === 12) next = rows.map((cells) => [...cells.slice(0, c + 1), word(), ...cells.slice(c + 1)]);
+    else if (action === 13) {
+      if (rows.length < 2) return;
+      next = rows.filter((_, i) => i !== r);
+    } else next = rows.map((cells, i) => (i === r ? cells.map((cell, j) => (j === c ? `${word()}${rnd() < 0.3 ? "\n" + word() : ""}` : cell)) : cells));
+    const nextContent: Record<string, unknown> = { type: "tableContent", rows: next.map((cells) => ({ cells })) };
+    if (action !== 12 && content.columnWidths) nextContent.columnWidths = content.columnWidths;
+    editor.updateBlock(table.id, { content: nextContent } as never);
+  };
+
   for (let i = 0; i < ACTIONS; i += 1) {
     const blocks = flatten(editor.document);
     const target = pick(blocks);
-    const action = Math.floor(rnd() * 10);
+    const action = Math.floor(rnd() * 16);
     try {
       switch (action) {
         case 0: // insert a block with children
@@ -116,8 +164,38 @@ async function runSeed(seed: number): Promise<void> {
         case 8:
           editor.undo();
           break;
-        default:
+        case 9:
           editor.redo();
+          break;
+        case 10: // insert a 2x3 table
+          editor.insertBlocks(
+            [
+              {
+                type: "table",
+                content: {
+                  type: "tableContent",
+                  rows: [0, 1].map(() => ({ cells: [0, 1, 2].map(() => `${word()} ${word()}`) })),
+                },
+              },
+            ],
+            target.id,
+            pick(["before", "after"] as const),
+          );
+          break;
+        case 11: // add a row
+        case 12: // add a column
+        case 13: // delete a row (never the last)
+        case 14: // edit a cell's text
+          editTable(action);
+          break;
+        default: {
+          // move a table block up / down
+          const tables = tablesOf(editor.document);
+          if (tables.length === 0) break;
+          editor.setTextCursorPosition(pick(tables).id);
+          if (rnd() < 0.5) editor.moveBlocksUp();
+          else editor.moveBlocksDown();
+        }
       }
     } catch {
       // an action that does not apply to this block (e.g. type without content) is skipped
@@ -128,6 +206,7 @@ async function runSeed(seed: number): Promise<void> {
 
   await pipeline.flush();
   const stored = await be.tabLoad(tab.id);
+  expect(tableShapes(normaliseStored(stored) as never), `seed ${seed} tables`).toEqual(tableShapes(normalise(editor.document) as never));
   expect(normaliseStored(stored), `seed ${seed}`).toEqual(normalise(editor.document));
   expect(errors.filter(isErrorPayload).map((e) => e.code), `seed ${seed} errors`).toEqual([]);
   expect(errors, `seed ${seed} errors`).toEqual([]);

@@ -318,6 +318,44 @@ fn validation_errors_carry_op_index() {
 }
 
 #[test]
+fn table_block_roundtrip_with_styles_and_breaks() {
+    let (mut s, _, tab) = setup();
+    let content = json!({
+        "type": "tableContent",
+        "columnWidths": [120, null],
+        "headerRows": 1,
+        "rows": [
+            { "cells": [
+                [{ "type": "text", "text": "Tiêu đề", "styles": { "bold": true } }],
+                [{ "type": "text", "text": "dòng 1\ndòng 2", "styles": {} }]
+            ] },
+            { "cells": [
+                [
+                    { "type": "text", "text": "Đà ", "styles": { "italic": true, "textColor": "red" } },
+                    { "type": "text", "text": "Nẵng", "styles": {} }
+                ],
+                [{ "type": "link", "href": "https://example.com", "content": [{ "type": "text", "text": "liên kết", "styles": {} }] }]
+            ] }
+        ]
+    });
+    s.apply(
+        &tab,
+        &[BlockOp::Upsert {
+            id: id(1),
+            parent_id: None,
+            prev_sibling_id: None,
+            r#type: "table".into(),
+            props: json!({ "textColor": "default" }),
+            content: Some(content.clone()),
+        }],
+    )
+    .unwrap();
+    let tree = s.load_tab(&tab).unwrap();
+    assert_eq!(tree[0].r#type, "table");
+    assert_eq!(tree[0].content, Some(content));
+}
+
+#[test]
 fn content_may_be_null_array_or_object() {
     let (mut s, _, tab) = setup();
     let mk = |n: u32, content: Option<Value>| BlockOp::Upsert {
