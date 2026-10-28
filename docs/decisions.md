@@ -75,3 +75,12 @@ Status: decided (2026-10-28)
 Status: decided (2026-10-28)
 - The fake mirrors the core's `apply` validation order and all-or-nothing semantics (works on a copy, commits at the end), search tokenising/ranking/snippets and the 50-page search limit. Sibling order is array order; `orderKey` of pages is a synthetic zero-padded index (the UI never interprets it). Dropdown chips contribute no search text in the fake (the core resolves option names; option sets arrive in a later phase).
 - `ui/src/platform/menuEvents.ts` and `quit.ts` hold the only `listen`/quit-flow code; `tauriBackend.ts` delegates to them. `listenFlushRequest` always calls `quit_ready` after the flush, even if the flush throws (the shell has its own 3 s timeout, so a failing flush must not block quitting).
+
+## D-012 App shell and page tree (Phase 1 Task 12)
+Status: decided (2026-10-28)
+- Extra copy keys not in §5.13's table, needed by the shell: `pagesSection` "Trang", `cancel` "Huỷ" (delete dialog), `moreActions` "Tuỳ chọn" (aria/title of the `⋯` button), `expand`/`collapse` "Mở rộng"/"Thu gọn" (disclosure aria-labels).
+- Creating a page (sidebar button, `+`, menu, native menu event) always opens it; creating a subpage expands its parent. The native `new-page` / `new-subpage` menu events are wired in `App` (subpage under the open page, else top level).
+- Inline rename trims the text; an unchanged title makes no backend call; an empty title is allowed (shows the greyed `untitled`). Enter and blur commit, Escape cancels.
+- The delete dialog focuses Cancel (destructive action is never the default) and closes on Escape or backdrop click. If the open page (or an ancestor) is deleted the page view closes.
+- Page list refresh after `create` re-lists from the backend so order always comes from the backend's `orderKey`; `childrenOf` sorts by `orderKey`, then id.
+- Playwright runs a single `webkit` project (the app runs in WKWebView); `npx playwright install webkit` inside `ui/` is a one-time setup step.

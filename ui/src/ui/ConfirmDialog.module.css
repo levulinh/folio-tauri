@@ -1,0 +1,51 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 90;
+}
+
+.dialog {
+  background: var(--bg-popover);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  padding: 20px;
+  width: min(420px, 90vw);
+}
+
+.message {
+  margin: 0 0 16px;
+  overflow-wrap: anywhere;
+}
+
+.buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.buttons button {
+  border: 1px solid var(--border);
+  background: transparent;
+  border-radius: 6px;
+  padding: 4px 14px;
+  cursor: pointer;
+}
+
+.buttons button:hover {
+  background: var(--bg-hover);
+}
+
+.buttons .danger {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+
+.buttons .danger:hover {
+  background: var(--danger);
+  filter: brightness(0.92);
+}

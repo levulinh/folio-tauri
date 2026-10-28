@@ -1,0 +1,35 @@
+import { create } from "zustand";
+import { isErrorPayload } from "../backend/Backend";
+import { vi } from "../i18n/vi";
+
+interface Toast {
+  id: string;
+  text: string;
+}
+
+interface UiState {
+  findOpen: boolean;
+  setFindOpen(v: boolean): void;
+  toasts: Toast[];
+  toast(text: string): void;
+  dismissToast(id: string): void;
+}
+
+let nextToast = 0;
+
+export const useUiStore = create<UiState>((set) => ({
+  findOpen: false,
+  setFindOpen: (findOpen) => set({ findOpen }),
+  toasts: [],
+  toast: (text) =>
+    set((s) => ({ toasts: [...s.toasts, { id: `toast-${(nextToast += 1)}`, text }] })),
+  dismissToast: (id) => set((s) => ({ toasts: s.toasts.filter((t) => t.id !== id) })),
+}));
+
+/** Shows a backend error as a toast with its Vietnamese text (unknown codes fall back to `db`). */
+export function reportError(e: unknown): void {
+  console.error(e);
+  const code = isErrorPayload(e) ? e.code : "";
+  const text = Object.hasOwn(vi.errors, code) ? vi.errors[code as keyof typeof vi.errors] : vi.errors.db;
+  useUiStore.getState().toast(text);
+}
