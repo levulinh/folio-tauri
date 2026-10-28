@@ -195,8 +195,10 @@ mod tests {
         out
     }
 
+    /// Generator, not a check: writes `ui/src/backend/generated/commands.ts` from `COMMANDS`
+    /// (run by `cargo test --workspace export_`; `scripts/check.sh` then fails on any diff).
     #[test]
-    fn export_command_names() {
+    fn export_commands_ts_file() {
         let dir = export_dir();
         std::fs::create_dir_all(&dir).unwrap();
         let path = dir.join("commands.ts");
