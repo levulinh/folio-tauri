@@ -55,3 +55,9 @@ Status: decided (2026-10-28)
 - Spec §3.1 declares `search_fts.kind/owner_id/page_id` UNINDEXED, so `DELETE ... WHERE owner_id = ?` is a full FTS scan (measured: 500-op apply ~840 ms with 20k other FTS rows). Migration `0002_search_owner.sql` adds `search_owner(fts_rowid, kind, owner_id, page_id)` with `UNIQUE(kind, owner_id)` and an index on `page_id` (backfilled from existing rows).
 - All helpers in `search.rs` go through it and touch `search_fts` by rowid only. Anything that writes `search_fts` directly must also write `search_owner`; counts of the two tables are equal by invariant.
 - `replace_tab_blocks` returns `InvalidOp` (not a PK `Db` error) for a node id living in another tab.
+
+## D-009 Search behaviour (Phase 1 Task 9)
+Status: decided (2026-10-28)
+- Query tokens: `fold(query)` split on spaces, every non-alphanumeric char stripped (this removes all FTS5 syntax), empties dropped; none left (or `limit == 0`) → `[]`. FTS expression: `text : ("a"* "b"*)`. AND is per FTS row (one title or one block), not across blocks of a page.
+- Ranking: pages with a title hit first, then lowest `bm25` over all their matching rows, then page title. `limit` caps pages.
+- Snippet: original plain text of the best-ranked matching block, 120 chars max centred on the first word-start match of the first token (falls back to any substring, then 0); cut ends get `…` (counted within the 120). Title-only hits use the page's first non-empty block (tabs by order_key, blocks depth-first), cut to 120 chars with a trailing `…` when longer; `""` if the page has none.
