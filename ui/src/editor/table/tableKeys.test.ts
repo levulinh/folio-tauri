@@ -226,6 +226,17 @@ describe("tableKeysExtension", () => {
     });
   });
 
+  it("Shift-Home and Shift-End return false (guard) when the anchor is in another cell", () => {
+    const [anchor, head] = [cellStart(0, 0) + 1, cellStart(0, 1) + 1];
+    editor.transact((tr) => tr.setSelection(TextSelection.create(tr.doc, anchor, head)));
+    const before = editor.prosemirrorState.selection;
+    const shortcuts = tableKeysExtension()({ editor } as never).keyboardShortcuts!;
+    for (const key of ["Shift-Home", "Shift-End", "Meta-Shift-ArrowLeft", "Meta-Shift-ArrowRight"] as const) {
+      expect(shortcuts[key]({ editor: editor as never, event: new KeyboardEvent("keydown", { key: "Home" }) }), key).toBe(false);
+    }
+    expect(editor.prosemirrorState.selection.eq(before)).toBe(true);
+  });
+
   it("keys outside a table are left alone", () => {
     editor.setTextCursorPosition("after", "end");
     // BlockNote itself handles Tab in a paragraph (indent), so ask this extension's own shortcuts.
