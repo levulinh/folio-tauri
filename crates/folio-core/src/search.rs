@@ -110,17 +110,13 @@ pub(crate) fn unindex_pages(tx: &Transaction, page_ids: &[String]) -> Result<()>
     Ok(())
 }
 
-/// Folded query -> FTS5 prefix terms (`"tok"*`, implicitly ANDed) and the bare tokens.
-/// Every non-alphanumeric char is stripped, which removes all FTS5 syntax.
+/// Folded query split on every non-alphanumeric char (as the unicode61 tokenizer does), which
+/// also removes all FTS5 syntax. Each piece becomes one `"tok"*` term.
 fn query_tokens(query: &str) -> Vec<String> {
     fold(query)
-        .split(' ')
-        .map(|t| {
-            t.chars()
-                .filter(|c| c.is_alphanumeric())
-                .collect::<String>()
-        })
+        .split(|c: char| !c.is_alphanumeric())
         .filter(|t| !t.is_empty())
+        .map(str::to_owned)
         .collect()
 }
 
@@ -214,9 +210,8 @@ impl Store {
         for (page_id, m) in pages {
             let title: Option<String> = self
                 .conn()
-                .query_row("SELECT title FROM pages WHERE id = ?1", [&page_id], |r| {
-                    r.get(0)
-                })
+                .prepare_cached("SELECT title FROM pages WHERE id = ?1")?
+                .query_row([&page_id], |r| r.get(0))
                 .optional()?;
             if let Some(title) = title {
                 ranked.push((page_id, title, m));
@@ -227,6 +222,7 @@ impl Store {
                 .cmp(&a.2.title)
                 .then(a.2.best_rank.total_cmp(&b.2.best_rank))
                 .then_with(|| a.1.cmp(&b.1))
+                .then_with(|| a.0.cmp(&b.0))
         });
         ranked.truncate(limit);
 

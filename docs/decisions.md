@@ -58,6 +58,6 @@ Status: decided (2026-10-28)
 
 ## D-009 Search behaviour (Phase 1 Task 9)
 Status: decided (2026-10-28)
-- Query tokens: `fold(query)` split on spaces, every non-alphanumeric char stripped (this removes all FTS5 syntax), empties dropped; none left (or `limit == 0`) → `[]`. FTS expression: `text : ("a"* "b"*)`. AND is per FTS row (one title or one block), not across blocks of a page.
-- Ranking: pages with a title hit first, then lowest `bm25` over all their matching rows, then page title. `limit` caps pages.
+- Query tokens: `fold(query)` split on every non-alphanumeric char (like the unicode61 tokenizer, so `e-mail`, `don't`, `3.14` become separate AND-ed terms; this also removes all FTS5 syntax), empties dropped; none left (or `limit == 0`) → `[]`. FTS expression: `text : ("a"* "b"*)`. AND is per FTS row (one title or one block), not across blocks of a page.
+- Ranking: pages with a title hit first, then lowest `bm25` over all their matching rows, then page title, then page id (deterministic). `limit` caps pages.
 - Snippet: original plain text of the best-ranked matching block, 120 chars max centred on the first word-start match of the first token (falls back to any substring, then 0); cut ends get `…` (counted within the 120). Title-only hits use the page's first non-empty block (tabs by order_key, blocks depth-first), cut to 120 chars with a trailing `…` when longer; `""` if the page has none.

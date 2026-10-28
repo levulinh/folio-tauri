@@ -108,10 +108,54 @@ fn empty_query_returns_empty() {
 #[test]
 fn fts_syntax_is_literal() {
     let mut s = Store::open_in_memory().unwrap();
-    page(&mut s, "A", &["a b x a:b near"]);
+    let a = page(&mut s, "A", &["a or b x a:b near"]);
     for q in ["\"", "*", "-a", "(x", "a OR b", "NEAR", "a:b"] {
         s.search(q, 50).unwrap_or_else(|e| panic!("{q:?}: {e}"));
     }
+    for q in ["a OR b", "a:b", "-a", "(x", "NEAR"] {
+        assert_eq!(ids(&s.search(q, 50).unwrap()), [a.as_str()], "{q:?}");
+    }
+}
+
+#[test]
+fn punctuated_words_are_findable() {
+    let mut s = Store::open_in_memory().unwrap();
+    let a = page(&mut s, "A", &["Gửi e-mail cho Hà, don't forget wi-fi 3.14"]);
+    for q in ["e-mail", "don't", "wi-fi", "3.14", "cho:hà"] {
+        assert_eq!(ids(&s.search(q, 50).unwrap()), [a.as_str()], "{q:?}");
+    }
+}
+
+#[test]
+fn identical_pages_order_by_page_id() {
+    let mut s = Store::open_in_memory().unwrap();
+    let mut expected: Vec<String> = (0..6).map(|_| page(&mut s, "Same", &["hello"])).collect();
+    expected.sort();
+    for _ in 0..20 {
+        let hits = s.search("hello", 50).unwrap();
+        assert_eq!(
+            ids(&hits),
+            expected.iter().map(String::as_str).collect::<Vec<_>>()
+        );
+    }
+}
+
+#[test]
+fn snippet_centres_on_decomposed_text() {
+    let mut s = Store::open_in_memory().unwrap();
+    let long = format!(
+        "{} Na\u{306}\u{303}ng {}",
+        "abc ".repeat(40),
+        "xyz ".repeat(40)
+    );
+    page(&mut s, "A", &[&long]);
+    let hit = s.search("nang", 50).unwrap().remove(0);
+    assert!(
+        hit.snippet.contains("Na\u{306}\u{303}ng"),
+        "{}",
+        hit.snippet
+    );
+    assert!(hit.snippet.chars().count() <= 120);
 }
 
 #[test]
