@@ -5,6 +5,8 @@ import { backend } from "../backend";
 import type { BlockNode } from "../backend/generated/BlockNode";
 import { usePageStore } from "../state/pageStore";
 import { reportError } from "../state/uiStore";
+import { registerPipeline, retirePipeline } from "./pipelineRegistry";
+import { createSavePipeline } from "./savePipeline";
 import { toEditorBlocks } from "./convert";
 import { dictionary } from "./dictionary";
 import { schema } from "./schema";
@@ -22,7 +24,7 @@ function useColorScheme(): "light" | "dark" {
   return dark ? "dark" : "light";
 }
 
-function EditorInstance({ blocks }: { blocks: BlockNode[] }) {
+function EditorInstance({ tabId, blocks }: { tabId: string; blocks: BlockNode[] }) {
   const colorScheme = useColorScheme();
   const initialContent = useMemo(() => (blocks.length ? toEditorBlocks(blocks) : undefined), [blocks]);
   const editor = useCreateBlockNote({
@@ -37,6 +39,19 @@ function EditorInstance({ blocks }: { blocks: BlockNode[] }) {
     setActiveEditor(editor);
     return () => setActiveEditor(null);
   }, [editor, setActiveEditor]);
+  const setSaveStatus = usePageStore((s) => s.setSaveStatus);
+  useEffect(() => {
+    const pipeline = createSavePipeline({ tabId, editor, backend });
+    const unregister = registerPipeline(pipeline);
+    const offStatus = pipeline.onStatus(setSaveStatus);
+    setSaveStatus(pipeline.status());
+    return () => {
+      offStatus();
+      setSaveStatus("saved");
+      // Not awaited: the registry tracks the final flush so flushAll() still waits for it.
+      retirePipeline(pipeline, unregister);
+    };
+  }, [tabId, editor, setSaveStatus]);
   return <BlockNoteView editor={editor} theme={colorScheme} data-testid="editor" />;
 }
 
@@ -60,5 +75,5 @@ export function Editor({ tabId }: { tabId: string }) {
     };
   }, [tabId]);
   if (loaded === null || loaded.tabId !== tabId) return null;
-  return <EditorInstance key={tabId} blocks={loaded.blocks} />;
+  return <EditorInstance key={tabId} tabId={tabId} blocks={loaded.blocks} />;
 }

@@ -2,6 +2,7 @@ import { Editor } from "../editor/Editor";
 import { usePageStore } from "../state/pageStore";
 import { usePagesStore } from "../state/pagesStore";
 import { PageTitle } from "./PageTitle";
+import { SaveStatus } from "./SaveStatus";
 import styles from "./PageView.module.css";
 
 /** One tab per page until Phase 4: the title above the editor of the active tab. */
@@ -13,6 +14,7 @@ export function PageView() {
   return (
     <article className={styles.page}>
       <PageTitle key={pageId} pageId={pageId} />
+      <SaveStatus />
       {activeTabId !== null && <Editor key={activeTabId} tabId={activeTabId} />}
     </article>
   );

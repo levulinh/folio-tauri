@@ -23,3 +23,31 @@
 .title::placeholder {
   color: var(--text-muted);
 }
+
+.saveStatus {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: -8px 0 16px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.saveDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #9a9a9a;
+}
+
+.saveStatus[data-status="saving"] .saveDot {
+  background: #e0a030;
+}
+
+.saveStatus[data-status="error"] {
+  color: #d04040;
+}
+
+.saveStatus[data-status="error"] .saveDot {
+  background: #d04040;
+}
