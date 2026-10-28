@@ -49,6 +49,13 @@ describe("convert", () => {
     expect(toStored({ id: "x", type: "table", props: {}, content: undefined, children: [] } as never).content).toBeNull();
   });
 
+  it("toStored makes strings well-formed UTF-16 (a lone surrogate would make the tab unsaveable)", () => {
+    const block = { id: "x", type: "paragraph", props: { note: "\ud83d" }, content: [{ type: "text", text: "a\ud83db", styles: {} }], children: [] };
+    const json = JSON.stringify(toStored(block as never));
+    expect(json).not.toMatch(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/);
+    expect(toStored(block as never).content).toEqual([{ type: "text", text: "a\uFFFDb", styles: {} }]);
+  });
+
   it("only offers heading levels 1-3 and drops unsupported blocks", () => {
     const blocks = Object.keys(schema.blockSchema);
     for (const gone of ["audio", "video", "file", "image", "toggleListItem", "divider"]) {

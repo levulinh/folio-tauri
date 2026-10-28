@@ -24,4 +24,22 @@ describe("tauriBackend", () => {
     const caught = await createTauriBackend().tabApply("t1", []).then(() => null, (e: unknown) => e);
     expect(caught).toBe(payload);
   });
+
+  it("maps a plain string rejection to invalid_op and logs it", async () => {
+    const err = vi.spyOn(console, "error").mockImplementation(() => {});
+    invoke.mockImplementation(() => Promise.reject("invalid args `ops` for command `tab_apply`"));
+    const caught = await createTauriBackend().tabApply("t1", []).then(() => null, (e: unknown) => e);
+    expect(caught).toEqual({ code: "invalid_op", message: "invalid args `ops` for command `tab_apply`" });
+    expect(err).toHaveBeenCalled();
+    err.mockRestore();
+  });
+
+  it("sends well-formed titles and queries", async () => {
+    invoke.mockResolvedValue({});
+    const be = createTauriBackend();
+    await be.pageRename("p", "a\ud83d");
+    await be.search("b\ude00");
+    expect(invoke).toHaveBeenCalledWith(Commands.pageRename, { id: "p", title: "a\uFFFD" });
+    expect(invoke).toHaveBeenCalledWith(Commands.search, { query: "b\uFFFD" });
+  });
 });

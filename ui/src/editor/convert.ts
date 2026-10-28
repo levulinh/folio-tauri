@@ -1,5 +1,6 @@
 import type { Block, PartialBlock } from "@blocknote/core";
 import type { BlockNode } from "../backend/generated/BlockNode";
+import { wellFormedDeep } from "../lib/wellFormed";
 import type { FolioEditor } from "./schema";
 
 type FolioBlock = Block<FolioEditor["schema"]["blockSchema"], FolioEditor["schema"]["inlineContentSchema"], FolioEditor["schema"]["styleSchema"]>;
@@ -19,11 +20,11 @@ export function toEditorBlocks(nodes: BlockNode[]): FolioPartialBlock[] {
   );
 }
 
-/** BlockNote block → stored shape (drops `id` and `children`). */
+/** BlockNote block → stored shape (drops `id` and `children`); lone surrogates become U+FFFD (serde_json rejects them). */
 export function toStored(block: FolioBlock): { type: string; props: Record<string, unknown>; content: unknown } {
   return {
     type: block.type,
-    props: block.props as Record<string, unknown>,
-    content: block.content ?? null,
+    props: wellFormedDeep(block.props as Record<string, unknown>),
+    content: wellFormedDeep(block.content ?? null),
   };
 }
