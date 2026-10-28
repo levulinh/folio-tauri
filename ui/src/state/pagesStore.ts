@@ -22,6 +22,8 @@ const byOrder = (a: PageMeta, b: PageMeta) =>
   a.orderKey === b.orderKey ? (a.id < b.id ? -1 : 1) : a.orderKey < b.orderKey ? -1 : 1;
 
 export function createPagesStore(api: PagesApi) {
+  /** Last rename request per page: renames of one page run one after another, so the latest typed title wins. */
+  const renameChain = new Map<string, Promise<unknown>>();
   return create<PagesState>((set, get) => ({
     pages: [],
     loaded: false,
@@ -34,7 +36,20 @@ export function createPagesStore(api: PagesApi) {
       return created;
     },
     async rename(id, title) {
-      const updated = await api.pageRename(id, title);
+      const previous = renameChain.get(id) ?? Promise.resolve();
+      const run = previous.then(
+        () => api.pageRename(id, title),
+        () => api.pageRename(id, title),
+      );
+      const settled = run.then(
+        () => undefined,
+        () => undefined,
+      );
+      renameChain.set(id, settled);
+      void settled.then(() => {
+        if (renameChain.get(id) === settled) renameChain.delete(id);
+      });
+      const updated = await run;
       set((s) => ({ pages: s.pages.map((p) => (p.id === id ? updated : p)) }));
     },
     async remove(id) {

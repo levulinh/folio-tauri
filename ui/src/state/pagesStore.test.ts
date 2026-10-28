@@ -51,4 +51,33 @@ describe("pagesStore", () => {
     expect(store.getState().pages[0]!.title).toBe("Giữ");
     expect(store.getState().pages.some((p) => p.id === b.id)).toBe(false);
   });
+
+  it("renames of one page are serialized: a slow earlier rename cannot overwrite a later one", async () => {
+    const fake = createFakeBackend();
+    const slowFirst: typeof fake.pageRename = async (id, title) => {
+      if (title === "first") await new Promise((r) => setTimeout(r, 30));
+      return fake.pageRename(id, title);
+    };
+    const racing = createPagesStore({ ...fake, pageRename: slowFirst });
+    const { page } = await racing.getState().create();
+    const first = racing.getState().rename(page.id, "first");
+    const second = racing.getState().rename(page.id, "second");
+    await Promise.all([first, second]);
+    expect(racing.getState().pages[0]!.title).toBe("second");
+    expect((await fake.pagesList())[0]!.title).toBe("second");
+  });
+
+  it("a failed rename does not block the next one for that page", async () => {
+    const fake = createFakeBackend();
+    let calls = 0;
+    const flaky: typeof fake.pageRename = (id, title) =>
+      ++calls === 1 ? Promise.reject({ code: "db", message: "x" }) : fake.pageRename(id, title);
+    const flakyStore = createPagesStore({ ...fake, pageRename: flaky });
+    const { page } = await flakyStore.getState().create();
+    const first = flakyStore.getState().rename(page.id, "a");
+    const second = flakyStore.getState().rename(page.id, "b");
+    await expect(first).rejects.toMatchObject({ code: "db" });
+    await second;
+    expect(flakyStore.getState().pages[0]!.title).toBe("b");
+  });
 });
