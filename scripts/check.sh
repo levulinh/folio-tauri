@@ -7,7 +7,8 @@ cargo clippy --workspace --all-targets -- -D warnings
 cargo test --workspace
 # Workspace builds unify folio-core's `test-support` feature into folio-app; this builds
 # folio-app with folio-core's normal features, so a `store.conn()` there fails (D-003).
-cargo check -p folio-app
+# --all-targets covers folio-app's own #[cfg(test)] code too.
+cargo check -p folio-app --all-targets
 test -n "$(ls ui/src/backend/generated 2>/dev/null)" || [ "${FOLIO_ALLOW_NO_BINDINGS:-0}" = 1 ]
 git diff --exit-code -- ui/src/backend/generated
 if [ -n "$(git status --porcelain -- ui/src/backend/generated)" ]; then
