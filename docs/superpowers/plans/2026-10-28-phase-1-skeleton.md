@@ -67,7 +67,7 @@ docs/manual-checklists/phase-1.md
 ### Task 1: Workspace scaffold and check script
 
 **Files:**
-- Create: `Cargo.toml`, `rust-toolchain.toml`, `.cargo/config.toml`, `package.json`, `scripts/check.sh`, `.gitignore` (append `ui/dist`, `ui/test-results`, `ui/playwright-report`)
+- Create: `Cargo.toml`, `rust-toolchain.toml`, `.cargo/config.toml`, `package.json`, `scripts/check.sh`, `.gitignore` (append `ui/test-results`, `ui/playwright-report`, `gen/schemas`, `*.local`)
 - Create: `crates/folio-core/Cargo.toml`, `crates/folio-core/src/lib.rs` (empty module list)
 - Create: `crates/folio-app/*` (minimal Tauri app that shows `ui/`)
 - Create: `ui/*` (Vite React TS app rendering "Folio")

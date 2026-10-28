@@ -562,6 +562,7 @@ The `heading` block is configured for levels 1–3 only (BlockNote allows more b
 Custom blocks `mathBlock`, `csvBlock`, `markdownBlock` (`createReactBlockSpec`, `content: "none"`, `propSchema: { source: { default: "" } }`):
 - **View mode** (default, and whenever the block is not being edited): math → KaTeX `renderToString(source, { displayMode: true, throwOnError: false })`; csv → Papa.parse (header: false) into an HTML table, max 500 rows shown then `vi.csvTruncated(n)`; markdown → markdown-it (html: false, linkify: true) → DOMPurify → HTML. Empty source → placeholder `vi.mathPlaceholder` / `vi.csvPlaceholder` / `vi.markdownPlaceholder`.
 - **Edit mode**: clicking the rendered view (or pressing Enter when the block is selected) shows a monospace `<textarea>` (auto-height) with the source; changes call `editor.updateBlock(block, { props: { source } })` debounced 300 ms; Escape or blur returns to view mode. **IME:** never update props while `compositionstart` … `compositionend` is active; flush on `compositionend` (test this in the manual checklist).
+- **Event isolation (learned in Phase 0):** React's `stopPropagation` on the textarea does not stop native events from reaching ProseMirror; rely on the node view's `stopEvent` (return `true` for events whose target is the textarea) and test ⌘Enter, Escape and Tab inside it. Track the composing flag with a `useRef`, not `useState` (state reads can be stale inside `onChange`).
 - Keyboard: ⌘Enter in the textarea leaves edit mode.
 
 Inline content (`createReactInlineContentSpec`, `content: "none"`):
