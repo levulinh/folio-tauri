@@ -62,14 +62,14 @@ export function FindBar() {
   const closeRef = useRef(close);
   closeRef.current = close;
   // Escape with focus in the editor also closes. ProseMirror's keymap marks Escape handled
-  // during bubbling, so listen while capturing (before it) and leave an open BlockNote menu to
-  // its own Escape. The bar's own input handles Escape itself.
+  // during bubbling, so listen while capturing (before it) and leave an open BlockNote menu (slash menu or
+  // emoji picker) to its own Escape. The bar's own input handles Escape itself.
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape" || e.defaultPrevented || e.isComposing || e.keyCode === 229) return;
       if (!(e.target instanceof Element) || !e.target.closest(".bn-editor")) return;
-      if (document.querySelector(".bn-suggestion-menu")) return;
+      if (document.querySelector(".bn-suggestion-menu, .bn-grid-suggestion-menu")) return;
       closeRef.current();
     };
     document.addEventListener("keydown", onKey, true);
