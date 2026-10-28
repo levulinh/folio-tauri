@@ -99,7 +99,10 @@ fn two_connections_migrating_a_fresh_db_both_succeed() {
             })
             .collect();
         for h in handles {
-            let v = h.join().unwrap().unwrap_or_else(|e| panic!("round {round}: {e}"));
+            let v = h
+                .join()
+                .unwrap()
+                .unwrap_or_else(|e| panic!("round {round}: {e}"));
             assert_eq!(v, MIGRATIONS.len() as i64);
         }
     }
