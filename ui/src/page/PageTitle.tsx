@@ -43,7 +43,7 @@ export function PageTitle({ pageId }: { pageId: string }) {
   const inputRef = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (useUiStore.getState().titleFocusPageId !== pageId) return;
-    useUiStore.getState().clearTitleFocus();
+    useUiStore.getState().clearTitleFocus(pageId);
     inputRef.current?.focus();
   }, [pageId]);
 

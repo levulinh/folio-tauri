@@ -23,3 +23,15 @@ describe("reportError", () => {
     expect(texts()).toEqual([copy.errors.db, copy.errors.db, copy.errors.db]);
   });
 });
+
+describe("clearTitleFocus", () => {
+  afterEach(() => useUiStore.setState({ titleFocusPageId: null }));
+
+  it("clears the request only when it is for that page", () => {
+    useUiStore.getState().requestTitleFocus("b");
+    useUiStore.getState().clearTitleFocus("a");
+    expect(useUiStore.getState().titleFocusPageId).toBe("b");
+    useUiStore.getState().clearTitleFocus("b");
+    expect(useUiStore.getState().titleFocusPageId).toBeNull();
+  });
+});

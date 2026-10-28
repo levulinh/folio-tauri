@@ -6,16 +6,18 @@ import { reportError, useUiStore } from "./uiStore";
 
 /** Creates a page (under `parentId`) and opens it; failures become a toast. Resolves to the new id. */
 export async function createAndOpenPage(parentId?: string): Promise<string | null> {
+  let createdId: string | null = null;
   try {
     const { page } = await usePagesStore.getState().create(parentId);
+    createdId = page.id;
     if (parentId !== undefined) useExpandedStore.getState().set(parentId, true);
     useUiStore.getState().requestTitleFocus(page.id);
     await usePageStore.getState().open(page.id);
     // open() resolves quietly when a newer open() won; then the request is stale.
-    if (usePageStore.getState().pageId !== page.id) useUiStore.getState().clearTitleFocus();
+    if (usePageStore.getState().pageId !== page.id) useUiStore.getState().clearTitleFocus(page.id);
     return page.id;
   } catch (e) {
-    useUiStore.getState().clearTitleFocus();
+    if (createdId !== null) useUiStore.getState().clearTitleFocus(createdId);
     reportError(e);
     return null;
   }

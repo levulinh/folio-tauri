@@ -11,7 +11,7 @@ const { useUiStore } = await import("./uiStore");
 
 beforeEach(async () => {
   usePageStore.getState().close();
-  useUiStore.getState().clearTitleFocus();
+  useUiStore.setState({ titleFocusPageId: null });
   await usePagesStore.getState().load();
 });
 
@@ -42,6 +42,29 @@ describe("createAndOpenPage title focus request", () => {
     spy.mockRestore();
     expect(usePageStore.getState().pageId).toBe(other.id);
     expect(useUiStore.getState().titleFocusPageId).toBeNull();
+  });
+
+  it("a superseded create does not clear the request of the newer create", async () => {
+    const realOpen = usePageStore.getState().open;
+    let releaseFirst!: () => void;
+    const gate = new Promise<void>((r) => (releaseFirst = r));
+    // First create's open() is slow (and loses); the second create is requested meanwhile.
+    const spy = vi.spyOn(usePageStore.getState(), "open").mockImplementationOnce(async (id) => {
+      const ticketTaken = realOpen(id);
+      await gate;
+      await ticketTaken;
+    });
+    const first = createAndOpenPage();
+    await vi.waitFor(() => expect(useUiStore.getState().titleFocusPageId).not.toBeNull());
+    const firstId = useUiStore.getState().titleFocusPageId;
+    const second = await createAndOpenPage();
+    expect(useUiStore.getState().titleFocusPageId).toBe(second);
+    releaseFirst();
+    await first;
+    spy.mockRestore();
+    expect(second).not.toBe(firstId);
+    expect(usePageStore.getState().pageId).toBe(second);
+    expect(useUiStore.getState().titleFocusPageId).toBe(second);
   });
 
   it("drops the request when open() throws", async () => {
