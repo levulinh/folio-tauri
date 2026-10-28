@@ -106,11 +106,11 @@ describe("convert", () => {
     expect(toStored(doc[1]!).props).toMatchObject({ checked: false });
   });
 
-  it("maps null stored content to undefined for the editor and back to a non-undefined stored value", () => {
+  it("maps null stored content to undefined for the editor and back to an empty array", () => {
     const blocks = toEditorBlocks([{ id: "n", type: "paragraph", props: {}, content: null, children: [] }]);
     expect(blocks[0]!.content).toBeUndefined();
     const stored = toStored(roundTrip([{ id: "n", type: "paragraph", props: {}, content: null, children: [] }])[0]!);
-    expect(stored.content).not.toBeUndefined();
+    expect(stored.content).toEqual([]);
     expect(toStored({ id: "x", type: "paragraph", props: {}, content: null, children: [] } as never).content).toBeNull();
   });
 

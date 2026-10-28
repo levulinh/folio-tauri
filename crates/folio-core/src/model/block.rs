@@ -122,8 +122,9 @@ pub struct TableCell {
     pub content: Vec<Inline>,
 }
 
-/// Parse inline content. Never fails: elements without a string `type` are skipped, elements
-/// with an unrecognised or malformed `type` become `Inline::Unknown`.
+/// Parse inline content. Never fails. An element that does not deserialise (unrecognised `type`
+/// or a malformed body) becomes `Inline::Unknown` when it has a string `type`; any other failing
+/// element is dropped.
 pub fn parse_inline(v: &Value) -> Vec<Inline> {
     let Some(items) = v.as_array() else {
         return Vec::new();
