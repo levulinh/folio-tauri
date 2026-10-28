@@ -3,7 +3,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { FolioEditor } from "../editor/schema";
 import { usePageStore } from "../state/pageStore";
 import { usePagesStore } from "../state/pagesStore";
-import { flushForQuit, titleFlushCount } from "../state/quitFlush";
+import { flushForQuit } from "../state/quitFlush";
+import { titleFlushCount } from "../state/quitFlush.testing";
 import { useUiStore } from "../state/uiStore";
 import { PageTitle } from "./PageTitle";
 
