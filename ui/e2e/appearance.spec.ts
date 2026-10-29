@@ -82,7 +82,11 @@ test("radio keyboard selection and menu events cannot alter an open editor", asy
   await page.getByTestId("appearance-accent-neutral").focus();
   await page.keyboard.press("ArrowRight");
   await expect(page.getByTestId("appearance-accent-blue")).toBeChecked();
-  await page.evaluate(() => { for (const name of ["new-page", "new-subpage", "find", "search", "undo", "redo"] as const) window.__folioFake!.emitMenu(name); });
+  for (const name of ["new-page", "new-subpage", "find", "search", "undo", "redo"] as const) {
+    await page.evaluate((event) => window.__folioFake!.emitMenu(event), name);
+    await expect(line).toHaveText("hello");
+    await expect.poll(() => page.evaluate(() => !!document.activeElement?.closest('[role="dialog"]'))).toBe(true);
+  }
   await expect(page.getByTestId("tree-item")).toHaveCount(1);
   await expect(page.getByTestId("find-bar")).toHaveCount(0);
   await expect(line).toHaveText("hello");
@@ -108,4 +112,33 @@ test("a failed preference save remains visible and retry persists the choice", a
   await page.reload();
   await page.getByTestId("open-settings").click();
   await expect(page.getByTestId("appearance-accent-blue")).toBeChecked();
+});
+
+
+test("changing appearance during an in-flight document save preserves editor identity and text", async ({ page }) => {
+  await page.getByTestId("empty-create-first").click();
+  const line = page.getByTestId("editor").locator(".bn-inline-content").first();
+  await expect(line).toBeVisible();
+  await page.evaluate(() => {
+    const fake = window.__folioFake!;
+    const apply = fake.tabApply.bind(fake);
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    const state = Object.assign(window, { testSaveStarted: false, testReleaseSave: release, testEditorNode: document.querySelector(".bn-editor") });
+    fake.tabApply = async (tab, ops) => { state.testSaveStarted = true; await gate; return apply(tab, ops); };
+  });
+  await line.click();
+  await page.keyboard.insertText("Tiếng Việt đang chờ lưu");
+  await expect.poll(() => page.evaluate(() => (window as unknown as { testSaveStarted: boolean }).testSaveStarted)).toBe(true);
+  await page.getByTestId("open-settings").click();
+  await page.getByTestId("appearance-mode-dark").check();
+  await page.getByTestId("appearance-accent-blue").check();
+  await page.getByTestId("appearance-close").click();
+  expect(await page.evaluate(() => (window as unknown as { testEditorNode: Node }).testEditorNode === document.querySelector(".bn-editor"))).toBe(true);
+  await expect(line).toHaveText("Tiếng Việt đang chờ lưu");
+  await page.evaluate(() => (window as unknown as { testReleaseSave(): void }).testReleaseSave());
+  await expect(page.getByTestId("save-status")).toHaveAttribute("data-status", "saved");
+  await page.reload();
+  await page.getByTestId("tree-item").first().click();
+  await expect(page.getByTestId("editor").locator(".bn-inline-content").first()).toHaveText("Tiếng Việt đang chờ lưu");
 });

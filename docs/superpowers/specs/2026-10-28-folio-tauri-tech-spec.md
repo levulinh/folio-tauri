@@ -501,7 +501,7 @@ ui/src/
   history/               HistoryPanel.tsx, VersionPreview.tsx
   settings/              SettingsDialog.tsx
   ui/                    Toast.tsx, ConfirmDialog.tsx, Menu.tsx (shared bits)
-  theme.css              CSS variables, light + dark via prefers-color-scheme
+  theme.css              CSS tokens, shared resolved theme (appearance addendum)
 ```
 
 Styling: **CSS Modules** (`*.module.css`) + CSS variables in `theme.css`; font `-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif`; body text 16 px / line-height 1.7; page text column max-width 900 px, centered (1044 px border-box with 72 px gutters). Appearance addendum governs explicit mode/accent preferences and shared Mantine/BlockNote theme. No Tailwind (my call: fewer moving parts).
@@ -609,6 +609,8 @@ Keyboard in cells: Tab → next cell, Shift-Tab → previous cell, **Tab in the 
 Idle checkpoint: the page view starts a 2-minute timer after each save; when it fires, `history_checkpoint(pageId, "idle")`.
 
 ### 5.12 Settings, export, print
+
+Appearance settings are implemented before Phase 4 under `2026-10-29-folio-appearance-tech-spec.md`. Phase 8 extends the same settings dialog with Markdown mirror controls; it must preserve `appearance.v1`, the shared theme store and existing CmdOrCtrl+, entry point.
 
 - Settings dialog (`⌘,`): "Thư mục Markdown" showing the path + button "Đổi thư mục…" (`settings_choose_mirror_folder`) + note `vi.mirrorNote` ("Folio tự ghi các trang ra đây dưới dạng Markdown. Sửa file ở đây sẽ không cập nhật lại vào Folio.").
 - Export Markdown (`⇧⌘E`): flush, `export_markdown(pageId)`, toast with the path.

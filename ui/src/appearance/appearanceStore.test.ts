@@ -112,3 +112,26 @@ describe("appearance ordering", () => {
   });
 
 });
+
+it("flush after an already failed write rejects without automatic retry", async () => {
+  api.appearanceSet.mockRejectedValue(new Error("disk full"));
+  const { useAppearanceStore: store } = await import("./appearanceStore");
+  store.getState().setPreferences({ accent: "blue" });
+  await vi.waitFor(() => expect(store.getState().error).toBe("save"));
+  await expect(store.getState().flush()).rejects.toThrow("disk full");
+  expect(api.appearanceSet).toHaveBeenCalledTimes(1);
+});
+
+it("late initial read cannot erase a failed newer local save", async () => {
+  const read = deferred<{ mode: "dark"; accent: "olive" }>();
+  api.appearanceGet.mockReturnValue(read.promise);
+  api.appearanceSet.mockRejectedValue(new Error("disk full"));
+  const { useAppearanceStore: store } = await import("./appearanceStore");
+  const loading = store.getState().load();
+  store.getState().setPreferences({ accent: "blue" });
+  await vi.waitFor(() => expect(store.getState().error).toBe("save"));
+  read.resolve({ mode: "dark", accent: "olive" });
+  await loading;
+  expect(store.getState()).toMatchObject({ preferences: { mode: "system", accent: "blue" }, error: "save", loaded: true });
+  expect(api.appearanceSet).toHaveBeenCalledTimes(1);
+});

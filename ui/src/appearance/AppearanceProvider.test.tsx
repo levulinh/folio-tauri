@@ -32,6 +32,10 @@ describe("AppearanceProvider", () => {
     act(() => { dark = false; listeners.forEach((fn) => fn({ matches: false } as MediaQueryListEvent)); dark = true; listeners.forEach((fn) => fn({ matches: true } as MediaQueryListEvent)); });
     expect(document.documentElement.dataset.theme).toBe("light");
     expect(document.documentElement.dataset.mantineColorScheme).toBe("light");
+    act(() => useAppearanceStore.getState().setPreferences({ mode: "dark" }));
+    act(() => { dark = false; listeners.forEach((fn) => fn({ matches: false } as MediaQueryListEvent)); });
+    expect(document.documentElement.dataset.theme).toBe("dark");
+    expect(document.documentElement.dataset.mantineColorScheme).toBe("dark");
     view.unmount();
     expect(listeners.size).toBe(0);
   });
