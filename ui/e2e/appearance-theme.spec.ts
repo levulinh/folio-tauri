@@ -47,12 +47,18 @@ for (const mode of ["light", "dark"] as const) {
         const bg = luminance(css.backgroundColor);
         const contrast = (name: string) => { const n = luminance(color(name)); return (Math.max(n, bg) + .05) / (Math.min(n, bg) + .05); };
         const values = [contrast("--text"), contrast("--text-muted"), contrast("--accent")];
+        for (const surface of ["--bg-sidebar", "--bg-hover", "--bg-selected", "--bg-popover"]) {
+          const surfaceLum = luminance(color(surface));
+          const mutedLum = luminance(color("--text-muted"));
+          values.push((Math.max(surfaceLum, mutedLum) + .05) / (Math.min(surfaceLum, mutedLum) + .05));
+        }
         probe.remove();
         return values;
       });
       expect(ratios[0]).toBeGreaterThanOrEqual(4.5);
       expect(ratios[1]).toBeGreaterThanOrEqual(4.5);
       expect(ratios[2]).toBeGreaterThanOrEqual(3);
+      for (const ratio of ratios.slice(3)) expect(ratio).toBeGreaterThanOrEqual(4.5);
     }
     await page.getByTestId("appearance-close").click();
     const line = page.getByTestId("editor").locator(".bn-inline-content").first();
@@ -74,7 +80,7 @@ for (const mode of ["light", "dark"] as const) {
     await page.keyboard.type("/quote");
     await page.keyboard.press("Enter");
     await page.keyboard.type("Trích dẫn dễ đọc");
-    await expect(page.locator("blockquote")).toHaveCSS("color", mode === "light" ? "rgb(170, 170, 170)" : "rgb(112, 112, 112)");
+    await expect(page.locator("blockquote")).toHaveCSS("color", mode === "light" ? "rgb(170, 170, 170)" : "rgb(102, 102, 102)");
   });
 }
 
@@ -91,3 +97,29 @@ test("system mode follows OS live while explicit modes override it", async ({ pa
   await page.emulateMedia({ colorScheme: "light" });
   await expect(page.getByTestId("editor")).toHaveAttribute("data-color-scheme", "dark");
 });
+
+
+for (const mode of ["light", "dark"] as const) {
+  test(`upstream code-selector fixture has a high-contrast keyboard focus ring (${mode})`, async ({ page }) => {
+    await page.getByTestId("open-settings").click();
+    await page.getByTestId(`appearance-mode-${mode}`).check();
+    await page.getByTestId("appearance-close").click();
+    // Current Folio schema does not enable supportedLanguages, so no selector is rendered.
+    // Exercise the upstream selector markup in a CSS-only fixture outside ProseMirror.
+    await page.evaluate(() => {
+      const root = document.createElement("div"); root.className = "bn-root";
+      root.innerHTML = '<div class="bn-block-content" data-content-type="codeBlock"><div><select aria-label="Test language"><option>Text</option></select></div><pre>example</pre></div>';
+      root.dataset.testid = "code-focus-fixture";
+      document.body.append(root);
+    });
+    const select = page.locator('[data-testid="code-focus-fixture"] select');
+    await select.focus();
+    await expect(select).toBeFocused();
+    await expect(select).toHaveCSS("outline-style", "solid");
+    await expect(select).toHaveCSS("outline-width", "2px");
+    await expect(select).toHaveCSS("outline-color", "rgb(196, 196, 196)");
+    await expect(select).toHaveCSS("opacity", "1");
+    // #c4c4c4 on BlockNote's dark code surface (#161616) exceeds 10:1.
+    await expect(page.locator('[data-content-type="codeBlock"]')).toHaveCSS("background-color", "rgb(22, 22, 22)");
+  });
+}

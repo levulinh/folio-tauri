@@ -92,7 +92,7 @@ Neutral surfaces for every accent. CSS Modules/current system font, no new packa
 | --bg-sidebar | #f3f3f3 | #1b1b1b |
 | --bg-popover | #ffffff | #2b2b2b |
 | --text | #292929 | #e7e7e7 |
-| --text-muted | #707070 | #aaaaaa |
+| --text-muted | #666666 | #aaaaaa |
 | --border | #e3e3e3 | #3b3b3b |
 | --bg-hover | #e8e8e8 | #343434 |
 
