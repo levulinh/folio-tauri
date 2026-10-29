@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { backend } from "../backend";
 import { vi } from "../i18n/vi";
+import { useUiStore } from "../state/uiStore";
 import { createAndOpenPage } from "../state/pageActions";
 import { PageTree } from "./PageTree";
 import { SearchBox } from "./SearchBox";
@@ -8,13 +9,13 @@ import { SearchResults, openHit } from "./SearchResults";
 import { useSearchResults } from "./useSearchResults";
 import styles from "./Sidebar.module.css";
 
-export function Sidebar() {
+export function Sidebar({ onOpenSettings }: { onOpenSettings?: (source?: HTMLElement) => void }) {
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const { query: hitsQuery, hits, searchNow } = useSearchResults(query);
   const searching = query.trim() !== "";
 
-  useEffect(() => backend.onMenu("search", () => inputRef.current?.focus()), []);
+  useEffect(() => backend.onMenu("search", () => { if (!useUiStore.getState().settingsOpen) inputRef.current?.focus(); }), []);
 
   return (
     <aside className={styles.sidebar}>
@@ -44,6 +45,7 @@ export function Sidebar() {
       >
         + {vi.newPage}
       </button>
+      <button type="button" className={styles.newPage} data-testid="open-settings" onClick={(event) => onOpenSettings?.(event.currentTarget)}>{vi.appearance.settings}</button>
     </aside>
   );
 }

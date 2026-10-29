@@ -8,6 +8,7 @@ use crate::quit;
 const QUIT_ID: &str = "quit";
 
 /// Menu item id → event name emitted to the UI.
+const SETTINGS_ID: &str = "settings";
 const NEW_PAGE_ID: &str = "new-page";
 const NEW_SUBPAGE_ID: &str = "new-subpage";
 const FIND_ID: &str = "find";
@@ -16,6 +17,7 @@ const UNDO_ID: &str = "undo";
 const REDO_ID: &str = "redo";
 
 const EVENT_ITEMS: &[(&str, &str)] = &[
+    (SETTINGS_ID, "menu:settings"),
     (NEW_PAGE_ID, "menu:new-page"),
     (NEW_SUBPAGE_ID, "menu:new-subpage"),
     (FIND_ID, "menu:find"),
@@ -31,6 +33,8 @@ pub fn build(app: &AppHandle) -> tauri::Result<Menu<Wry>> {
         true,
         &[
             &PredefinedMenuItem::about(app, Some("Giới thiệu Folio"), None)?,
+            &PredefinedMenuItem::separator(app)?,
+            &MenuItem::with_id(app, SETTINGS_ID, "Cài đặt…", true, Some("CmdOrCtrl+,"))?,
             &PredefinedMenuItem::separator(app)?,
             &PredefinedMenuItem::hide(app, Some("Ẩn Folio"))?,
             &PredefinedMenuItem::separator(app)?,
@@ -104,8 +108,18 @@ mod tests {
                 .find(|(item, _)| *item == id)
                 .map(|(_, e)| *e)
         };
+        assert_eq!(event_of(SETTINGS_ID), Some("menu:settings"));
         assert_eq!(event_of(UNDO_ID), Some("menu:undo"));
         assert_eq!(event_of(REDO_ID), Some("menu:redo"));
+    }
+
+    #[test]
+    fn settings_has_the_expected_native_label_and_shortcut() {
+        let source = include_str!("menu.rs");
+        let production = source.split("#[cfg(test)]").next().unwrap();
+        assert!(production.contains(
+            "MenuItem::with_id(app, SETTINGS_ID, \"Cài đặt…\", true, Some(\"CmdOrCtrl+,\"))"
+        ));
     }
 
     /// The native `undo:`/`redo:` items bypass the UI's history routing (D-024/D-026), so the Edit menu

@@ -92,3 +92,10 @@ describe("Sidebar search clear", () => {
     expect(screen.getByTestId("tree")).toBeTruthy();
   });
 });
+
+describe("appearance settings", () => {
+  it("offers a settings opener even when no page is selected", () => {
+    render(<Sidebar />);
+    expect(screen.getByTestId("open-settings").textContent).toContain("Cài đặt");
+  });
+});

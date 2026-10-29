@@ -8,6 +8,8 @@ interface Toast {
 }
 
 interface UiState {
+  settingsOpen: boolean;
+  setSettingsOpen(v: boolean): void;
   findOpen: boolean;
   setFindOpen(v: boolean): void;
   /** Page whose title input should take focus when it mounts (set right after creating a page). */
@@ -23,6 +25,8 @@ interface UiState {
 let nextToast = 0;
 
 export const useUiStore = create<UiState>((set) => ({
+  settingsOpen: false,
+  setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
   findOpen: false,
   setFindOpen: (findOpen) => set({ findOpen }),
   titleFocusPageId: null,

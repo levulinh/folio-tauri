@@ -46,6 +46,7 @@ export function FindBar() {
   useEffect(
     () =>
       backend.onMenu("find", () => {
+        if (useUiStore.getState().settingsOpen) return;
         setOpen(true);
         setFocusTick((t) => t + 1);
       }),
@@ -67,7 +68,7 @@ export function FindBar() {
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== "Escape" || e.defaultPrevented || e.isComposing || e.keyCode === 229) return;
+      if (useUiStore.getState().settingsOpen || e.key !== "Escape" || e.defaultPrevented || e.isComposing || e.keyCode === 229) return;
       if (!(e.target instanceof Element) || !e.target.closest(".bn-editor")) return;
       if (document.querySelector(".bn-suggestion-menu, .bn-grid-suggestion-menu")) return;
       closeRef.current();

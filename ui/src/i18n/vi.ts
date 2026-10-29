@@ -1,5 +1,12 @@
 /** Every user-visible string (tech spec §5.13). Components never inline text. */
 export const vi = {
+  appearance: {
+    settings: "Cài đặt", heading: "Giao diện", mode: "Chế độ", system: "Theo hệ thống",
+    light: "Sáng", dark: "Tối", accent: "Màu nhấn", neutral: "Trung tính",
+    blue: "Xanh dương", olive: "Olive", purple: "Tím", close: "Đóng cài đặt",
+    saving: "Đang lưu…", loadError: "Không tải được giao diện. Thử lại.",
+    saveError: "Không lưu được giao diện. Thử lại.", retry: "Thử lại",
+  },
   untitled: "Không có tiêu đề",
   newPage: "Trang mới",
   newSubpage: "Thêm trang con",
