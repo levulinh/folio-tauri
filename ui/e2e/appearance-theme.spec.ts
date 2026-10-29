@@ -104,6 +104,9 @@ for (const mode of ["light", "dark"] as const) {
     await page.getByTestId("open-settings").click();
     await page.getByTestId(`appearance-mode-${mode}`).check();
     await page.getByTestId("appearance-close").click();
+    // Wait for the modal's asynchronous focus restoration before focusing the CSS fixture.
+    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(page.getByTestId("open-settings")).toBeFocused();
     // Current Folio schema does not enable supportedLanguages, so no selector is rendered.
     // Exercise the upstream selector markup in a CSS-only fixture outside ProseMirror.
     await page.evaluate(() => {
