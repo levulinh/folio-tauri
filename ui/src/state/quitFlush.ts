@@ -1,3 +1,4 @@
+import { useAppearanceStore } from "../appearance/appearanceStore";
 import { flushAll } from "../editor/pipelineRegistry";
 import { addTitleFlusher, removeTitleFlusher, titleFlushers } from "./titleFlushers";
 
@@ -20,7 +21,7 @@ export function trackRename(rename: Promise<void>): Promise<void> {
 export async function flushForQuit(): Promise<void> {
   const started = titleFlushers().map((f) => f());
   // allSettled: one failing save must not end the wait before the others have finished.
-  const results = await Promise.allSettled([...started, ...renamesInFlight, flushAll()]);
+  const results = await Promise.allSettled([...started, ...renamesInFlight, flushAll(), useAppearanceStore.getState().flush()]);
   const failed = results.find((r): r is PromiseRejectedResult => r.status === "rejected");
   if (failed) throw failed.reason;
 }

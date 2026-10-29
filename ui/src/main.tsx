@@ -1,6 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { MantineProvider } from "@mantine/core";
+import { AppearanceProvider } from "./appearance/AppearanceProvider";
 import "@mantine/core/styles.css";
 import "@blocknote/mantine/style.css";
 import "./theme.css";
@@ -10,8 +10,8 @@ const root = document.getElementById("root");
 if (!root) throw new Error("#root element missing");
 createRoot(root).render(
   <StrictMode>
-    <MantineProvider>
+    <AppearanceProvider>
       <App />
-    </MantineProvider>
+    </AppearanceProvider>
   </StrictMode>,
 );

@@ -10,6 +10,7 @@ import type { PartialBlock } from "@blocknote/core";
 import type { Transaction } from "prosemirror-state";
 import { useCallback, useEffect, useState } from "react";
 import { backend } from "../backend";
+import { useAppearanceStore } from "../appearance/appearanceStore";
 import type { BlockNode } from "../backend/generated/BlockNode";
 import { usePageStore } from "../state/pageStore";
 import { reportError } from "../state/uiStore";
@@ -30,19 +31,6 @@ import { ToolbarVisibilitySync } from "./toolbar/ToolbarVisibilitySync";
 import { FolioFormattingToolbar } from "./toolbar/FolioFormattingToolbar";
 import "./editor.css";
 
-const DARK_QUERY = "(prefers-color-scheme: dark)";
-
-function useColorScheme(): "light" | "dark" {
-  const [dark, setDark] = useState(() => window.matchMedia(DARK_QUERY).matches);
-  useEffect(() => {
-    const query = window.matchMedia(DARK_QUERY);
-    const onChange = (e: MediaQueryListEvent) => setDark(e.matches);
-    query.addEventListener("change", onChange);
-    return () => query.removeEventListener("change", onChange);
-  }, []);
-  return dark ? "dark" : "light";
-}
-
 /** BlockNote's default rule: no slash menu inside table cells. */
 const shouldOpenSlash = (tr: Transaction) => !tr.selection.$from.parent.type.isInGroup("tableContent");
 const runSlashItem = (item: DefaultReactSuggestionItem) => item.onItemClick();
@@ -57,7 +45,7 @@ interface Loaded {
 
 function EditorInstance({ loaded }: { loaded: Loaded }) {
   const { tabId, initial, storedIds } = loaded;
-  const colorScheme = useColorScheme();
+  const colorScheme = useAppearanceStore((s) => s.resolvedMode);
   const editor = useCreateBlockNote({
     schema,
     dictionary,

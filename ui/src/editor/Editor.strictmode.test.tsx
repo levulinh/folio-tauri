@@ -9,6 +9,7 @@ vi.mock("../backend", () => ({ backend: fake }));
 
 const { Editor } = await import("./Editor");
 const { usePageStore } = await import("../state/pageStore");
+const { useAppearanceStore } = await import("../appearance/appearanceStore");
 
 Object.defineProperty(window, "matchMedia", {
   value: () => ({ matches: false, addEventListener() {}, removeEventListener() {} }),
@@ -94,4 +95,17 @@ describe("Editor under StrictMode", () => {
     expect(JSON.stringify(editor2.document[0]!.content)).toContain("chưa lưu");
     expect(active - before).toBe(1);
   });
+  it("changes editor theme without replacing the editor or its text", async () => {
+    const tabId = await newTab();
+    const view = render(<StrictMode><Editor tabId={tabId} /></StrictMode>);
+    await settle();
+    const editor = usePageStore.getState().activeEditor!;
+    act(() => { editor.updateBlock(editor.document[0]!, { content: "preserved text" }); });
+    act(() => useAppearanceStore.getState().setPreferences({ mode: "dark" }));
+    await settle();
+    expect(usePageStore.getState().activeEditor).toBe(editor);
+    expect(JSON.stringify(editor.document)).toContain("preserved text");
+    expect(view.getByTestId("editor").getAttribute("data-color-scheme")).toBe("dark");
+  });
+
 });
