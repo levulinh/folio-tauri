@@ -1,3 +1,4 @@
+import { Plus, Settings } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { backend } from "../backend";
 import { vi } from "../i18n/vi";
@@ -45,9 +46,9 @@ export function Sidebar({ onOpenSettings }: { onOpenSettings?: (source?: HTMLEle
           data-testid="sidebar-new-page"
           onClick={() => void createAndOpenPage()}
         >
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg> {vi.newPage}
+          <Plus size={18} aria-hidden="true" /> {vi.newPage}
         </button>
-        <button type="button" className={styles.newPage} data-testid="open-settings" onClick={(event) => onOpenSettings?.(event.currentTarget)}><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3" /><path d="M19 12a7 7 0 0 0-.1-1l1.6-1.2-1.5-2.6-1.9.7a7 7 0 0 0-1.8-1L15 5h-3l-.3 1.9a7 7 0 0 0-1.8 1L8 8.2 6.5 10.8 8.1 12a7 7 0 0 0 0 2l-1.6 1.2L8 17.8l1.9-.7a7 7 0 0 0 1.8 1L12 20h3l.3-1.9a7 7 0 0 0 1.8-1l1.9.7 1.5-2.6-1.6-1.2A7 7 0 0 0 19 12Z" /></svg> {vi.appearance.settings}</button>
+        <button type="button" className={styles.newPage} data-testid="open-settings" onClick={(event) => onOpenSettings?.(event.currentTarget)}><Settings size={18} aria-hidden="true" /> {vi.appearance.settings}</button>
       </div>
     </aside>
   );

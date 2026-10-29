@@ -1,3 +1,4 @@
+import { GripVertical, Plus } from "lucide-react";
 import { TableHandlesExtension } from "@blocknote/core/extensions";
 import {
   AddButton,
@@ -111,7 +112,7 @@ function FolioTableHandle(props: TableHandleProps) {
   });
   return (
     <span ref={holder} style={{ display: "contents" }}>
-      <TableHandle {...props} tableHandleMenu={FolioTableHandleMenu as never} />
+      <TableHandle {...props} tableHandleMenu={FolioTableHandleMenu as never}><GripVertical size={20} aria-hidden="true" data-test="tableHandle" /></TableHandle>
     </span>
   );
 }
@@ -124,7 +125,7 @@ function FolioExtendButton(props: ExtendButtonProps) {
   const editor = useBlockNoteEditor();
   return (
     <span style={{ display: "contents" }} onClick={() => editor.focus()}>
-      <ExtendButton {...props} />
+      <ExtendButton {...props}><Plus size={18} aria-hidden="true" data-test="extendButton" /></ExtendButton>
     </span>
   );
 }

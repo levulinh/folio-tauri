@@ -71,6 +71,9 @@ button.toggle:hover {
 }
 
 .actions button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 22px;
   height: 22px;
   border: 0;

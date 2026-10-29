@@ -1,3 +1,4 @@
+import { ChevronUp, ChevronDown, X } from "lucide-react";
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { backend } from "../../backend";
 import { vi } from "../../i18n/vi";
@@ -140,13 +141,13 @@ export function FindBar() {
         {counterText(state)}
       </span>
       <button type="button" className={styles.button} data-testid="find-prev" aria-label={vi.findPrev} onClick={() => step(-1)}>
-        ↑
+        <ChevronUp size={16} aria-hidden="true" />
       </button>
       <button type="button" className={styles.button} data-testid="find-next" aria-label={vi.findNext} onClick={() => step(1)}>
-        ↓
+        <ChevronDown size={16} aria-hidden="true" />
       </button>
       <button type="button" className={styles.button} data-testid="find-close" aria-label={vi.findClose} onClick={close}>
-        ×
+        <X size={16} aria-hidden="true" />
       </button>
     </div>
   );

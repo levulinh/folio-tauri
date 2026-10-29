@@ -27,6 +27,7 @@
     "@tauri-apps/plugin-opener": "2.7.2",
     "dompurify": "^3.4.17",
     "katex": "0.19.1",
+    "lucide-react": "1.64.0",
     "markdown-it": "^14.3.3",
     "papaparse": "5.7.0",
     "prosemirror-model": "1.25.12",

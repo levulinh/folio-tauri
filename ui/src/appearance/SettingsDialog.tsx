@@ -1,3 +1,4 @@
+import { X } from "lucide-react";
 import { Modal } from "@mantine/core";
 import { useEffect, useRef } from "react";
 import { vi } from "../i18n/vi";
@@ -25,7 +26,7 @@ export function SettingsDialog({ onClose }: { onClose(): void }) {
     withCloseButton={false} returnFocus
     classNames={{ content: styles.content, body: styles.body }}>
     <div data-testid="appearance-settings">
-    <button type="button" data-autofocus data-testid="appearance-close" aria-label={vi.appearance.close} onClick={onClose}>×</button>
+    <button type="button" data-autofocus data-testid="appearance-close" aria-label={vi.appearance.close} onClick={onClose}><X size={16} aria-hidden="true" /></button>
     <h2>{vi.appearance.heading}</h2>
     <fieldset><legend>{vi.appearance.mode}</legend>
       {(["system", "light", "dark"] as const).map((mode) => <label key={mode} className={styles.option}>

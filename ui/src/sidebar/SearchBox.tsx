@@ -1,3 +1,4 @@
+import { Search } from "lucide-react";
 import { useState, type RefObject } from "react";
 import { vi } from "../i18n/vi";
 import styles from "./SearchBox.module.css";
@@ -15,7 +16,7 @@ export function SearchBox({ onQueryChange, onEnter, inputRef }: Props) {
 
   return (
     <div className={styles.search}>
-      <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 4 4" /></svg>
+      <Search size={16} aria-hidden="true" />
       <input
         ref={inputRef}
         className={styles.box}

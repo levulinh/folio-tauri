@@ -1,3 +1,4 @@
+import { ChevronRight, Plus, Ellipsis } from "lucide-react";
 import { useRef, useState } from "react";
 import type { PageMeta } from "../backend/generated/PageMeta";
 import { vi } from "../i18n/vi";
@@ -57,7 +58,7 @@ export function PageTreeItem({ page, depth, expanded, setExpanded, onRequestDele
               setExpanded(page.id, !isOpen);
             }}
           >
-            ▸
+            <ChevronRight size={14} aria-hidden="true" />
           </button>
         ) : (
           <span className={styles.toggle} aria-hidden />
@@ -81,7 +82,7 @@ export function PageTreeItem({ page, depth, expanded, setExpanded, onRequestDele
               data-testid="tree-item-add-child"
               onClick={addChild}
             >
-              +
+              <Plus size={16} aria-hidden="true" />
             </button>
             <button
               type="button"
@@ -93,7 +94,7 @@ export function PageTreeItem({ page, depth, expanded, setExpanded, onRequestDele
               data-menu-trigger
               onClick={() => setMenuOpen((v) => !v)}
             >
-              ⋯
+              <Ellipsis size={16} aria-hidden="true" />
             </button>
           </span>
         )}

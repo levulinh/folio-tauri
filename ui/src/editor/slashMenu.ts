@@ -1,3 +1,5 @@
+import { createElement, type ReactElement } from "react";
+import { Text, Heading1, Heading2, Heading3, List, ListOrdered, ListTodo, Quote, Code, Table, type LucideIcon } from "lucide-react";
 import { insertOrUpdateBlockForSlashMenu } from "@blocknote/core";
 import { vi } from "../i18n/vi";
 import type { FolioEditor } from "./schema";
@@ -32,8 +34,11 @@ export interface FolioSlashItem {
   key: SlashKey;
   title: string;
   aliases: string[];
+  icon?: ReactElement;
   onItemClick: () => void;
 }
+
+const ICONS: Record<SlashKey, LucideIcon> = { text: Text, heading1: Heading1, heading2: Heading2, heading3: Heading3, bulletedList: List, numberedList: ListOrdered, todoList: ListTodo, quote: Quote, code: Code, table: Table };
 
 const ALIASES: Record<SlashKey, string[]> = {
   text: ["paragraph", "p"],
@@ -77,6 +82,7 @@ export function slashItems(editor: FolioEditor): FolioSlashItem[] {
   return SLASH_ORDER.map((key) => ({
     key,
     title: vi.slashMenu[key],
+    icon: createElement(ICONS[key], { size: 18, "aria-hidden": true }),
     aliases: ALIASES[key],
     onItemClick: () => {
       insertOrUpdateBlockForSlashMenu(editor, BLOCKS[key]);

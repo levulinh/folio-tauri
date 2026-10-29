@@ -5,7 +5,7 @@
 .body fieldset { border: 0; padding: 0; margin: 20px 0; display: flex; flex-wrap: wrap; gap: 7px; }
 .body legend { font-size: 12px; color: var(--text-muted); font-weight: 550; margin-bottom: 10px; }
 .body h2 { font-size: 14px; font-weight: 500; color: var(--text-muted); margin: 8px 0 0; }
-.body [data-testid="appearance-close"] { position: absolute; z-index: 1001; top: 16px; right: 16px; border: 0; background: transparent; color: var(--text-muted); border-radius: 6px; width: 32px; height: 32px; font-size: 22px; line-height: 1; }
+.body [data-testid="appearance-close"] { position: absolute; z-index: 1001; top: 16px; right: 16px; border: 0; background: transparent; color: var(--text-muted); border-radius: 6px; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; font-size: 22px; line-height: 1; }
 .body button:hover { background: var(--bg-hover); }
 .option { display: flex; align-items: center; gap: 7px; padding: 9px 11px; border: 1px solid var(--border); border-radius: 7px; cursor: pointer; font-size: 13px; }
 .option:has(:checked) { background: var(--bg-selected); border-color: var(--accent); }

@@ -1,6 +1,8 @@
+import { FolioEditorIcons } from "./FolioEditorIcons";
 import { BlockNoteView } from "@blocknote/mantine";
 import {
   FormattingToolbarController,
+  LinkToolbarController,
   SideMenuController,
   SuggestionMenuController,
   useCreateBlockNote,
@@ -80,7 +82,9 @@ function EditorInstance({ loaded }: { loaded: Loaded }) {
     };
   }, [tabId, editor, storedIds, setSaveStatus]);
   return (
-    <BlockNoteView editor={editor} theme={colorScheme} formattingToolbar={false} slashMenu={false} sideMenu={false} tableHandles={false} emojiPicker={false} data-testid="editor">
+    <BlockNoteView editor={editor} theme={colorScheme} formattingToolbar={false} slashMenu={false} sideMenu={false} tableHandles={false} emojiPicker={false} linkToolbar={false} data-testid="editor">
+      <FolioEditorIcons>
+      <LinkToolbarController />
       <ToolbarVisibilitySync />
       <FormattingToolbarController formattingToolbar={FolioFormattingToolbar} />
       <SideMenuController sideMenu={FolioSideMenu} />
@@ -92,6 +96,7 @@ function EditorInstance({ loaded }: { loaded: Loaded }) {
         suggestionMenuComponent={SlashMenuComponent}
         onItemClick={runSlashItem}
       />
+      </FolioEditorIcons>
     </BlockNoteView>
   );
 }
