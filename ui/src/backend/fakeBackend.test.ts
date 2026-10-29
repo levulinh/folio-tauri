@@ -355,6 +355,16 @@ describe("appearance persistence", () => {
     expect((await createFakeBackend({ persistKey: "appearance-old" }).pagesList())[0]?.id).toBe(page.page.id);
     expect(await createFakeBackend({ persistKey: "appearance-other" }).appearanceGet()).toEqual({ mode: "system", accent: "neutral" });
   });
+  it("preserves appearance after creating and deleting a page across instances", async () => {
+    const backend = createFakeBackend({ persistKey: "appearance-page-delete" });
+    const appearance = { mode: "dark", accent: "olive" } as const;
+    await backend.appearanceSet(appearance);
+    const { page } = await backend.pageCreate();
+    await backend.pageDelete(page.id);
+    const reopened = createFakeBackend({ persistKey: "appearance-page-delete" });
+    expect(await reopened.pagesList()).toEqual([]);
+    expect(await reopened.appearanceGet()).toEqual(appearance);
+  });
   it("defaults malformed stored appearance and rejects invalid writes without mutation", async () => {
     localStorage.setItem("appearance-invalid", JSON.stringify({ pages: [], tabs: [], blocks: {}, appearance: { mode: "dark" } }));
     const backend = createFakeBackend({ persistKey: "appearance-invalid" });
