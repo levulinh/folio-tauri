@@ -6,6 +6,8 @@ This document is the *how*. It is written for implementing agents that have not 
 
 ---
 
+Appearance addendum (2026-10-29): `2026-10-29-folio-appearance-tech-spec.md` is binding for the appearance pass before Phase 4. It supersedes appearance-only details in §5.1/§5.3/§5.12 and the Phase 8 appearance scope: content width 900 px, explicit System/Light/Dark preferences, four accents, and shared theme state. Historical phase plans must also be read with `docs/decisions.md`; they are not instructions to restore superseded implementations.
+
 ## 0. Rules for implementing agents
 
 1. **Do not change scope.** Build only what the phase you are on asks for. No extra features, no "nice to have" refactors of other phases.
@@ -502,7 +504,7 @@ ui/src/
   theme.css              CSS variables, light + dark via prefers-color-scheme
 ```
 
-Styling: **CSS Modules** (`*.module.css`) + CSS variables in `theme.css`; font `-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif`; body text 16 px / line-height 1.6; page content column max-width 720 px, centered. BlockNote's Mantine theme set to follow light/dark. No Tailwind (my call: fewer moving parts).
+Styling: **CSS Modules** (`*.module.css`) + CSS variables in `theme.css`; font `-apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif`; body text 16 px / line-height 1.7; page text column max-width 900 px, centered (1044 px border-box with 72 px gutters). Appearance addendum governs explicit mode/accent preferences and shared Mantine/BlockNote theme. No Tailwind (my call: fewer moving parts).
 
 ### 5.2 Backend interface
 
