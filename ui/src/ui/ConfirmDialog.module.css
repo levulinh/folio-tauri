@@ -40,12 +40,12 @@
 }
 
 .buttons .danger {
-  background: var(--danger);
-  border-color: var(--danger);
+  background: var(--danger-solid, #b92d38);
+  border-color: var(--danger-solid, #b92d38);
   color: #fff;
 }
 
 .buttons .danger:hover {
-  background: var(--danger);
+  background: var(--danger-solid, #b92d38);
   filter: brightness(0.92);
 }

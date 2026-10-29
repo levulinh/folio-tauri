@@ -15,3 +15,29 @@
   font-size: 16px;
   line-height: 1.7;
 }
+
+/* Apply to editor and BlockNote portal roots: portal menus do not inherit the editor DOM. */
+:root .bn-root,
+:root .bn-root[data-color-scheme] {
+  --bn-colors-editor-background: transparent;
+  --bn-colors-editor-text: var(--text);
+  --bn-colors-menu-background: var(--bg-popover);
+  --bn-colors-menu-text: var(--text);
+  --bn-colors-hovered-background: var(--bg-hover);
+  --bn-colors-hovered-text: var(--text);
+  --bn-colors-selected-background: var(--bg-selected);
+  --bn-colors-selected-text: var(--text);
+  --bn-colors-disabled-background: var(--bg-sidebar);
+  --bn-colors-disabled-text: var(--text-muted);
+  --bn-colors-border: var(--border);
+  --bn-colors-side-menu: var(--text-muted);
+  --bn-colors-tooltip-background: var(--text);
+  --bn-colors-tooltip-text: var(--bg);
+  --bn-shadow-medium: var(--shadow);
+  --bn-font-family: var(--font);
+}
+.bn-root .bn-block-content[data-content-type="table"] th { background-color: var(--bg-sidebar); }
+.bn-root .bn-block-content[data-content-type="table"] :is(th, td) { border-color: var(--border); }
+.bn-root .bn-inline-content a { color: var(--accent); text-decoration: underline; }
+.bn-root .bn-block-content[data-content-type="quote"] blockquote { border-inline-start-color: var(--accent); color: var(--text-muted); }
+.bn-root .bn-suggestion-menu { box-shadow: var(--shadow); }

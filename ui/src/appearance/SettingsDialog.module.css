@@ -1,5 +1,20 @@
-.content { max-width: calc(100vw - 32px); max-height: calc(100vh - 48px); overflow-y: auto; }
-.body fieldset { border: 0; padding: 0; margin: 20px 0; }
-.body legend { font-weight: 600; margin-bottom: 8px; }
-.body h2 { font-size: 16px; }
-.option { display: flex; align-items: center; gap: 8px; padding: 6px 0; cursor: pointer; }
+.content { position: relative; max-width: calc(100vw - 32px); max-height: calc(100vh - 48px); overflow-y: auto; background: var(--bg-popover); color: var(--text); border: 1px solid var(--border); border-radius: 12px; box-shadow: var(--shadow); }
+.content :global(.mantine-Modal-header) { background: var(--bg-popover); padding: 22px 24px 4px; }
+.content :global(.mantine-Modal-title) { font-size: 19px; font-weight: 650; letter-spacing: -.4px; }
+.body { padding: 8px 24px 24px; }
+.body fieldset { border: 0; padding: 0; margin: 20px 0; display: flex; flex-wrap: wrap; gap: 7px; }
+.body legend { font-size: 12px; color: var(--text-muted); font-weight: 550; margin-bottom: 10px; }
+.body h2 { font-size: 14px; font-weight: 500; color: var(--text-muted); margin: 8px 0 0; }
+.body [data-testid="appearance-close"] { position: absolute; z-index: 1001; top: 16px; right: 16px; border: 0; background: transparent; color: var(--text-muted); border-radius: 6px; width: 32px; height: 32px; font-size: 22px; line-height: 1; }
+.body button:hover { background: var(--bg-hover); }
+.option { display: flex; align-items: center; gap: 7px; padding: 9px 11px; border: 1px solid var(--border); border-radius: 7px; cursor: pointer; font-size: 13px; }
+.option:has(:checked) { background: var(--bg-selected); border-color: var(--accent); }
+.option input { width: 14px; height: 14px; margin: 0; accent-color: var(--accent); }
+.option:hover { background: var(--bg-hover); }
+.swatch { width: 9px; height: 9px; border-radius: 50%; background: #777; }
+.swatch[data-swatch="blue"] { background: #3567a0; }
+.swatch[data-swatch="olive"] { background: #536b52; }
+.swatch[data-swatch="purple"] { background: #76599a; }
+.body [role="status"] { color: var(--text-muted); font-size: 12px; }
+.body [role="alert"] { color: var(--danger); font-size: 13px; }
+.body [role="alert"] button { margin-left: 6px; color: var(--text); border: 1px solid var(--border); border-radius: 5px; background: transparent; padding: 4px 8px; }

@@ -34,7 +34,7 @@ export function SettingsDialog({ onClose }: { onClose(): void }) {
     </fieldset>
     <fieldset><legend>{vi.appearance.accent}</legend>
       {(["neutral", "blue", "olive", "purple"] as const).map((accent) => <label key={accent} className={styles.option}>
-        <input type="radio" name="appearance-accent" data-testid={`appearance-accent-${accent}`} checked={preferences.accent === accent} onChange={() => setPreferences({ accent })} /> {vi.appearance[accent]}
+        <input type="radio" name="appearance-accent" data-testid={`appearance-accent-${accent}`} checked={preferences.accent === accent} onChange={() => setPreferences({ accent })} /> <span aria-hidden="true" className={styles.swatch} data-swatch={accent} /> {vi.appearance[accent]}
       </label>)}
     </fieldset>
     {saving && <p role="status">{vi.appearance.saving}</p>}
