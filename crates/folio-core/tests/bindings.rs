@@ -1,7 +1,7 @@
 use folio_core::appearance::Appearance;
 use folio_core::error::ErrorPayload;
 use folio_core::model::{
-    ApplyResult, BlockNode, BlockOp, CreatedPage, PageMeta, SearchHit, TabMeta,
+    ApplyResult, AssetMeta, BlockNode, BlockOp, CreatedPage, PageMeta, SearchHit, TabMeta,
 };
 use serde_json::{json, Value};
 use std::path::PathBuf;
@@ -90,6 +90,8 @@ fn generated(name: &str) -> String {
 fn export_bindings() {
     let cfg = ts_rs::Config::from_env();
     Appearance::export_all(&cfg).unwrap();
+    AssetMeta::export_all(&cfg).unwrap();
+    assert!(generated("AssetMeta.ts").contains("byteSize: number"));
     PageMeta::export_all(&cfg).unwrap();
     TabMeta::export_all(&cfg).unwrap();
     CreatedPage::export_all(&cfg).unwrap();

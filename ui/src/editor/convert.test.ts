@@ -127,7 +127,7 @@ describe("convert", () => {
 
   it("only offers heading levels 1-3 and drops unsupported blocks", () => {
     const blocks = Object.keys(schema.blockSchema);
-    for (const gone of ["audio", "video", "file", "image", "toggleListItem", "divider"]) {
+    for (const gone of ["audio", "video", "file", "toggleListItem", "divider"]) {
       expect(blocks).not.toContain(gone);
     }
     expect(schema.blockSchema.heading.propSchema.level.values).toEqual([1, 2, 3]);

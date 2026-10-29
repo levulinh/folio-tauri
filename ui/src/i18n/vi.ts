@@ -39,6 +39,9 @@ export const vi = {
     quote: "Quote",
     code: "Code",
     table: "Table",
+    image: "Image",
+    columns2: "2 columns",
+    columns3: "3 columns",
   },
   errors: {
     not_found: "Không tìm thấy mục này",

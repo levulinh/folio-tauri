@@ -42,6 +42,7 @@ function tableText(content: unknown): string {
 
 /** Plain text of one block (Phase 1: text and link runs; tables = cell texts joined by spaces). */
 export function plainText(block: BlockRec): string {
+  if (block.type === "image" || block.type === "file") return [block.props.name, block.props.caption].filter((s) => typeof s === "string" && s !== "").join(" ");
   return block.type === "table" ? tableText(block.content) : inlineText(block.content);
 }
 

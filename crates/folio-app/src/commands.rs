@@ -3,7 +3,7 @@
 use folio_core::appearance::Appearance;
 use folio_core::error::ErrorPayload;
 use folio_core::model::{
-    ApplyResult, BlockNode, BlockOp, CreatedPage, PageMeta, SearchHit, TabMeta,
+    ApplyResult, AssetMeta, BlockNode, BlockOp, CreatedPage, PageMeta, SearchHit, TabMeta,
 };
 use tauri::{AppHandle, State};
 
@@ -19,6 +19,7 @@ type CmdResult<T> = Result<T, ErrorPayload>;
 macro_rules! command_list {
     ($cb:ident) => {
         $cb! {
+            asset_import,
             appearance_get,
             appearance_set,
             pages_list,
@@ -52,6 +53,60 @@ pub const COMMANDS: &[&str] = command_list!(names);
 
 pub fn invoke_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync + 'static {
     command_list!(handler)
+}
+
+fn import_request(
+    body: &tauri::ipc::InvokeBody,
+    headers: &tauri::http::HeaderMap,
+) -> CmdResult<(String, Vec<u8>)> {
+    let invalid = || {
+        folio_core::CoreError::InvalidOp {
+            index: 0,
+            reason: "expected raw image bytes and percent-encoded x-file-name".into(),
+        }
+        .to_payload()
+    };
+    let tauri::ipc::InvokeBody::Raw(bytes) = body else {
+        return Err(invalid());
+    };
+    if bytes.len() > folio_core::assets::MAX_ASSET_BYTES {
+        return Err(invalid());
+    }
+    let encoded = headers
+        .get("x-file-name")
+        .and_then(|v| v.to_str().ok())
+        .ok_or_else(invalid)?;
+    // Reject malformed escapes instead of silently retaining them in the display name.
+    let mut decoded = Vec::new();
+    let mut chars = encoded.as_bytes().iter().copied();
+    while let Some(ch) = chars.next() {
+        if ch == b'%' {
+            let hi = chars
+                .next()
+                .and_then(|c| (c as char).to_digit(16))
+                .ok_or_else(invalid)?;
+            let lo = chars
+                .next()
+                .and_then(|c| (c as char).to_digit(16))
+                .ok_or_else(invalid)?;
+            decoded.push((hi * 16 + lo) as u8);
+        } else {
+            decoded.push(ch);
+        }
+    }
+    Ok((
+        String::from_utf8(decoded).map_err(|_| invalid())?,
+        bytes.clone(),
+    ))
+}
+
+#[tauri::command]
+async fn asset_import(
+    state: State<'_, AppState>,
+    request: tauri::ipc::Request<'_>,
+) -> CmdResult<AssetMeta> {
+    let (name, bytes) = import_request(request.body(), request.headers())?;
+    blocking(&state, move |s| s.import_asset(&name, &bytes)).await
 }
 
 #[tauri::command]
@@ -153,8 +208,30 @@ mod tests {
     use super::*;
     use std::path::PathBuf;
 
+    #[test]
+    fn raw_import_request_decodes_names_and_rejects_bad_requests() {
+        use tauri::{http::HeaderMap, ipc::InvokeBody};
+        let mut headers = HeaderMap::new();
+        let raw = InvokeBody::Raw(b"GIF89aimage".to_vec());
+        assert!(import_request(&raw, &headers).is_err());
+        headers.insert("x-file-name", "%E1%BA%A3nh%20a.gif".parse().unwrap());
+        let (name, bytes) = import_request(&raw, &headers).unwrap();
+        assert_eq!(name, "ảnh a.gif");
+        let mut store = folio_core::Store::open_in_memory().unwrap();
+        assert_eq!(store.import_asset(&name, &bytes).unwrap().file_name, name);
+        assert!(import_request(&InvokeBody::default(), &headers).is_err());
+        for name in ["%", "%ZZ", "%FF"] {
+            headers.insert("x-file-name", name.parse().unwrap());
+            assert!(import_request(&raw, &headers).is_err());
+        }
+        headers.insert("x-file-name", "%2e%2e%2fa.gif".parse().unwrap());
+        let (name, bytes) = import_request(&raw, &headers).unwrap();
+        assert!(store.import_asset(&name, &bytes).is_err());
+    }
+
     /// Second literal list next to the macro one: adding a command means touching both.
-    const EXPECTED: [&str; 15] = [
+    const EXPECTED: [&str; 16] = [
+        "asset_import",
         "appearance_get",
         "appearance_set",
         "pages_list",
@@ -219,6 +296,7 @@ mod tests {
         let path = dir.join("commands.ts");
         std::fs::write(&path, commands_ts()).unwrap();
         let written = std::fs::read_to_string(&path).unwrap();
+        assert!(written.contains("assetImport: \"asset_import\""));
         assert!(written.contains("pagesList: \"pages_list\""));
         assert!(written.contains("tabApply: \"tab_apply\""));
         assert!(written.ends_with("} as const;\n"));

@@ -13,6 +13,7 @@ thiserror.workspace = true
 chrono.workspace = true
 ts-rs.workspace = true
 tempfile.workspace = true
+sha2.workspace = true
 
 [features]
 # Exposes `Store::conn`/`conn_mut` to integration tests. Never enable from folio-app.

@@ -382,3 +382,17 @@ describe("appearance persistence", () => {
     expect(await createFakeBackend({ persistKey: "appearance-failure" }).appearanceGet()).toEqual({ mode: "light", accent: "olive" });
   });
 });
+
+describe("persistent save failures", () => {
+  it("rejects a quota failure without reporting or publishing an unsaved edit", async () => {
+    const b = createFakeBackend({ persistKey: "quota-regression" });
+    const { tab } = await b.pageCreate();
+    const storedBefore = localStorage.getItem("quota-regression");
+    const write = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new DOMException("full", "QuotaExceededError"); });
+    try {
+      await expect(b.tabApply(tab.id, [up(88, null, null, "not saved")])).rejects.toMatchObject({ code: "io" });
+      expect(await b.tabLoad(tab.id)).toEqual([]);
+      expect(localStorage.getItem("quota-regression")).toBe(storedBefore);
+    } finally { write.mockRestore(); }
+  });
+});

@@ -1,4 +1,5 @@
-import { invoke } from "@tauri-apps/api/core";
+import { imageMime } from "./imageValidation";
+import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { toWellFormed } from "../lib/wellFormed";
 import { listenMenu } from "../platform/menuEvents";
 import { listenFlushRequest } from "../platform/quit";
@@ -22,6 +23,15 @@ async function call<T>(command: string, args?: Record<string, unknown>): Promise
 
 export function createTauriBackend(): Backend {
   return {
+    assetImport: async (file) => {
+      try {
+        if (file.size > 20 * 1024 * 1024) throw { code: "invalid_op", message: "Image exceeds 20 MiB" };
+        const bytes = await file.arrayBuffer();
+        imageMime(file.name, new Uint8Array(bytes));
+        return await invoke(Commands.assetImport, bytes, { headers: { "x-file-name": encodeURIComponent(file.name) } }); }
+      catch (e) { if (isErrorPayload(e)) throw e; throw { code: "io", message: String(e) }; }
+    },
+    assetDisplayUrl: (url) => url.startsWith("folio-asset:") ? convertFileSrc(url.slice("folio-asset:".length), "folio-asset") : "",
     appearanceGet: () => call(Commands.appearanceGet),
     appearanceSet: (appearance) => call(Commands.appearanceSet, { appearance }),
     pagesList: () => call(Commands.pagesList),

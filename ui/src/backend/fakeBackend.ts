@@ -1,3 +1,5 @@
+import { imageMime } from "./imageValidation";
+import type { AssetMeta } from "./generated/AssetMeta";
 import { applyOps, depthFirst, notFound, toTree } from "./fakeApply";
 import { plainText, searchPages, type BlockRec, type PageTexts } from "./fakeSearch";
 import type { Backend, MenuEvent } from "./Backend";
@@ -9,6 +11,7 @@ const SEARCH_LIMIT = 50;
 
 /** Pages keep sibling order by array position; `orderKey` is derived when listing. */
 interface State {
+  readonly assets?: Readonly<Record<string, { meta: AssetMeta; data: string }>>;
   readonly appearance: Appearance;
   readonly pages: readonly PageMeta[];
   readonly tabs: readonly TabMeta[];
@@ -39,7 +42,7 @@ function load(key: string | undefined): State {
     if (!raw) return EMPTY;
     const parsed = JSON.parse(raw) as Partial<State>;
     if (!Array.isArray(parsed.pages) || !Array.isArray(parsed.tabs) || !parsed.blocks) return EMPTY;
-    return { appearance: parseAppearance(parsed.appearance) ?? DEFAULT_APPEARANCE, pages: parsed.pages, tabs: parsed.tabs, blocks: parsed.blocks };
+    return { assets: parsed.assets ?? {}, appearance: parseAppearance(parsed.appearance) ?? DEFAULT_APPEARANCE, pages: parsed.pages, tabs: parsed.tabs, blocks: parsed.blocks };
   } catch {
     return EMPTY;
   }
@@ -79,13 +82,11 @@ export function createFakeBackend(opts: { persistKey?: string } = {}): FakeBacke
   const flushListeners = new Set<() => Promise<void>>();
 
   const commit = (next: State) => {
-    state = next;
-    if (!opts.persistKey) return;
-    try {
-      localStorage.setItem(opts.persistKey, JSON.stringify(state));
-    } catch {
-      /* storage unavailable or full: the fake just stays in memory */
+    if (opts.persistKey) {
+      try { localStorage.setItem(opts.persistKey, JSON.stringify(next)); }
+      catch (e) { throw { code: "io", message: String(e) }; }
     }
+    state = next;
   };
   const keyed = (id: string): PageMeta => withKeys(state.pages).find((p) => p.id === id)!;
   const tabBlocks = (tabId: string): readonly BlockRec[] => {
@@ -94,6 +95,21 @@ export function createFakeBackend(opts: { persistKey?: string } = {}): FakeBacke
   };
 
   return {
+    async assetImport(file) {
+      if (file.size > 20 * 1024 * 1024) throw { code: "invalid_op", message: "Image exceeds 20 MiB" };
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      const mime = imageMime(file.name, bytes);
+      const sha256 = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", bytes)), (b) => b.toString(16).padStart(2, "0")).join("");
+      const existing = Object.values(state.assets ?? {}).find((a) => a.meta.sha256 === sha256);
+      if (existing) return existing.meta;
+      const data = await new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result as string); reader.onerror = reject; reader.readAsDataURL(new Blob([bytes], { type: mime })); });
+      const meta: AssetMeta = { id: crypto.randomUUID(), fileName: file.name, mime, ext: mime.split("/")[1]!.replace("jpeg", "jpg"), byteSize: bytes.length, sha256, createdAt: Date.now() };
+      const next = { ...state, assets: { ...state.assets, [meta.id]: { meta, data } } };
+      if (opts.persistKey) { try { localStorage.setItem(opts.persistKey, JSON.stringify(next)); } catch { throw { code: "io", message: "Image storage full" }; } }
+      state = next;
+      return meta;
+    },
+    assetDisplayUrl(url) { return url.startsWith("folio-asset:") ? state.assets?.[url.slice(12)]?.data ?? "" : ""; },
     async appearanceGet() {
       return { ...state.appearance };
     },

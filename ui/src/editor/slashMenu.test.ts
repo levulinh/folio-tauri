@@ -19,7 +19,7 @@ describe("slashItems", () => {
     expect(keys(items)).toEqual([...SLASH_ORDER]);
     expect(items.map((i) => i.title)).toEqual([
       "Text", "Heading 1", "Heading 2", "Heading 3", "Bulleted list",
-      "Numbered list", "To-do list", "Quote", "Code", "Table",
+      "Numbered list", "To-do list", "Quote", "Code", "Table", "Image", "2 columns", "3 columns",
     ]);
   });
 

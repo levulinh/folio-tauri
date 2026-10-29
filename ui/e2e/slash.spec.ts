@@ -17,7 +17,7 @@ const blocks = (page: Page) => editorOf(page).locator(".bn-block-content");
 
 const TITLES = [
   "Text", "Heading 1", "Heading 2", "Heading 3", "Bulleted list",
-  "Numbered list", "To-do list", "Quote", "Code", "Table",
+  "Numbered list", "To-do list", "Quote", "Code", "Table", "Image", "2 columns", "3 columns",
 ];
 
 test("slash opens the menu with English labels", async ({ page }) => {
@@ -63,7 +63,7 @@ test("enter applies to an empty block", async ({ page }) => {
 test("arrow keys move the selection and enter applies it", async ({ page }) => {
   await firstLine(page).click();
   await page.keyboard.type("/");
-  await expect(items(page)).toHaveCount(10);
+  await expect(items(page)).toHaveCount(TITLES.length);
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press("ArrowDown");
   await page.keyboard.press("ArrowDown");

@@ -1,3 +1,4 @@
+mod assets;
 mod commands;
 mod menu;
 mod quit;
@@ -8,6 +9,13 @@ use tauri::Manager;
 fn main() {
     let app = tauri::Builder::default()
         .invoke_handler(commands::invoke_handler())
+        .register_asynchronous_uri_scheme_protocol("folio-asset", |context, request, responder| {
+            let store =
+                std::sync::Arc::clone(&context.app_handle().state::<state::AppState>().store);
+            tauri::async_runtime::spawn_blocking(move || {
+                responder.respond(assets::response(&store, request.uri().path()));
+            });
+        })
         .menu(menu::build)
         .on_menu_event(menu::on_event)
         .setup(|app| {

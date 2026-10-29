@@ -1,12 +1,16 @@
+import { columnsSpec, columnSpec } from "./columns";
 import { BlockNoteSchema, createHeadingBlockSpec, defaultBlockSpecs, defaultStyleSpecs } from "@blocknote/core";
 
-// Default specs minus audio, video, file, image, toggleListItem, divider (they return in
-// Phase 5 or never) and the textColor / backgroundColor styles; tech spec §5.6.
-const { bulletListItem, checkListItem, codeBlock, numberedListItem, paragraph, quote, table } = defaultBlockSpecs;
+// Images and Folio layout containers extend the basic editor; audio/video/files
+// and text/background color controls remain outside the current scope.
+const { bulletListItem, checkListItem, codeBlock, numberedListItem, paragraph, quote, table, image } = defaultBlockSpecs;
 const { bold, italic, underline, strike, code } = defaultStyleSpecs;
 
 export const schema = BlockNoteSchema.create({
   blockSpecs: {
+    folioColumns: columnsSpec,
+    folioColumn: columnSpec,
+    image,
     paragraph,
     heading: createHeadingBlockSpec({ levels: [1, 2, 3], allowToggleHeadings: false }),
     bulletListItem,

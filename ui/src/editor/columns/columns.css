@@ -1,0 +1,38 @@
+/* The outer frame provides the query container; its child owns the grid. */
+.folio-columns {
+  container: folio-columns / inline-size;
+  min-width: 0;
+  width: 100%;
+}
+
+.folio-columns > .folio-columns__slots {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  min-width: 0;
+}
+
+.folio-columns[data-columns="3"] > .folio-columns__slots {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+/* React node-view wrappers use display:contents; grid items can be their descendants. */
+.folio-columns .folio-column {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Reset BlockNote's ordinary nested-block indentation only at our layout slots. */
+.folio-columns > .folio-columns__slots,
+.folio-columns .folio-column {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+@container folio-columns (width < 600px) {
+  .folio-columns > .folio-columns__slots,
+  .folio-columns[data-columns="3"] > .folio-columns__slots {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

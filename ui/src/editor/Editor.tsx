@@ -1,14 +1,18 @@
+import { FolioImagePanel } from "./images/FolioImagePanel";
 import { FolioEditorIcons } from "./FolioEditorIcons";
 import { BlockNoteView } from "@blocknote/mantine";
 import {
   FormattingToolbarController,
   LinkToolbarController,
+  FilePanelController,
   SideMenuController,
   SuggestionMenuController,
   useCreateBlockNote,
   type DefaultReactSuggestionItem,
 } from "@blocknote/react";
 import type { PartialBlock } from "@blocknote/core";
+import type { FolioEditor } from "./schema";
+type FolioPartialBlock = PartialBlock<FolioEditor["schema"]["blockSchema"], FolioEditor["schema"]["inlineContentSchema"], FolioEditor["schema"]["styleSchema"]>;
 import type { Transaction } from "prosemirror-state";
 import { useCallback, useEffect, useState } from "react";
 import { backend } from "../backend";
@@ -16,6 +20,7 @@ import { useAppearanceStore } from "../appearance/appearanceStore";
 import type { BlockNode } from "../backend/generated/BlockNode";
 import { usePageStore } from "../state/pageStore";
 import { reportError } from "../state/uiStore";
+import { installColumnsCountSync } from "./columns";
 import { getPipeline, pendingDocumentFor } from "./pipelineRegistry";
 import { toEditorBlocks } from "./convert";
 import { dictionary } from "./dictionary";
@@ -40,7 +45,7 @@ const runSlashItem = (item: DefaultReactSuggestionItem) => item.onItemClick();
 interface Loaded {
   tabId: string;
   /** What the editor starts with: the stored tree, or the document of the tab's unsaved pipeline. */
-  initial: PartialBlock[] | undefined;
+  initial: FolioPartialBlock[] | undefined;
   /** Ids the backend has, to seed the tab's pipeline. */
   storedIds: string[];
 }
@@ -50,6 +55,11 @@ function EditorInstance({ loaded }: { loaded: Loaded }) {
   const colorScheme = useAppearanceStore((s) => s.resolvedMode);
   const editor = useCreateBlockNote({
     schema,
+    uploadFile: async (file) => {
+      try { const asset = await backend.assetImport(file); return "folio-asset:" + asset.id; }
+      catch (e) { reportError(e); throw e; }
+    },
+    resolveFileUrl: async (url) => backend.assetDisplayUrl(url),
     dictionary,
     initialContent: initial as never,
     trailingBlock: true,
@@ -58,6 +68,8 @@ function EditorInstance({ loaded }: { loaded: Loaded }) {
     extensions: [findExtension(), slashComposingGuard(), tableKeysExtension()],
   });
   useEffect(installNativeHistoryGuard, []);
+  // A removed column changes the layout's child count; keep the persisted `count` prop equal to it.
+  useEffect(() => installColumnsCountSync(editor), [editor]);
   useFocusAfterDrop(editor);
   const getSlashItems = useCallback(
     async (query: string): Promise<DefaultReactSuggestionItem[]> => filterSlashItems(slashItems(editor), query),
@@ -82,9 +94,10 @@ function EditorInstance({ loaded }: { loaded: Loaded }) {
     };
   }, [tabId, editor, storedIds, setSaveStatus]);
   return (
-    <BlockNoteView editor={editor} theme={colorScheme} formattingToolbar={false} slashMenu={false} sideMenu={false} tableHandles={false} emojiPicker={false} linkToolbar={false} data-testid="editor">
+    <BlockNoteView editor={editor} theme={colorScheme} formattingToolbar={false} slashMenu={false} sideMenu={false} tableHandles={false} emojiPicker={false} linkToolbar={false} filePanel={false} data-testid="editor">
       <FolioEditorIcons>
       <LinkToolbarController />
+      <FilePanelController filePanel={FolioImagePanel} />
       <ToolbarVisibilitySync />
       <FormattingToolbarController formattingToolbar={FolioFormattingToolbar} />
       <SideMenuController sideMenu={FolioSideMenu} />
@@ -104,7 +117,7 @@ function EditorInstance({ loaded }: { loaded: Loaded }) {
 async function loadTab(tabId: string): Promise<Loaded> {
   // Unsaved work of a just-left editor is newer than the database: start from its document.
   const pending = pendingDocumentFor(tabId);
-  if (pending) return { tabId, initial: pending.document as PartialBlock[], storedIds: pending.storedIds };
+  if (pending) return { tabId, initial: pending.document as FolioPartialBlock[], storedIds: pending.storedIds };
   const stored = await backend.tabLoad(tabId);
   return { tabId, initial: stored.length ? toEditorBlocks(stored) : undefined, storedIds: collectIds(stored) };
 }

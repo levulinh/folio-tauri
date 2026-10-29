@@ -5,5 +5,5 @@ pub mod entities;
 pub mod ops;
 
 pub use block::{BlockNode, Inline, TableContent};
-pub use entities::{ApplyResult, CreatedPage, PageMeta, SearchHit, TabMeta};
+pub use entities::{ApplyResult, AssetMeta, CreatedPage, PageMeta, SearchHit, TabMeta};
 pub use ops::BlockOp;

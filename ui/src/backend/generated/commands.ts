@@ -1,4 +1,5 @@
 export const Commands = {
+  assetImport: "asset_import",
   appearanceGet: "appearance_get",
   appearanceSet: "appearance_set",
   pagesList: "pages_list",

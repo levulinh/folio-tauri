@@ -10,6 +10,8 @@ A local-first notes app built with **Rust, Tauri 2, React and BlockNote**. Folio
 
 - Nested pages: create, rename, delete and search, with Vietnamese accent-insensitive matching.
 - Block editing: paragraphs, three heading levels, nested lists, checklists, quotes and code blocks.
+- Images stored as local assets, with captions and resizing.
+- Side-by-side layouts with two or three editable columns.
 - Inline formatting: bold, italic, underline, strikethrough, inline code and links.
 - Slash commands, block handles and drag-and-drop reordering.
 - Rich tables: add/delete/reorder rows and columns, resize columns, toggle headers and navigate cells with the keyboard.
@@ -17,7 +19,7 @@ A local-first notes app built with **Rust, Tauri 2, React and BlockNote**. Folio
 - System, light and dark appearance, with neutral, blue, olive and purple accents.
 - Consistent Lucide icons throughout the interface.
 
-SQLite is the source of truth. A Markdown mirror, attachments, comments, version history and export are planned; they are not shipped features yet.
+SQLite is the source of truth. A Markdown mirror, general file attachments, comments, version history and export are planned; they are not shipped features yet.
 
 ## Run locally
 

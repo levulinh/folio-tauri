@@ -1,5 +1,6 @@
+import { insertColumns } from "./columns";
 import { createElement, type ReactElement } from "react";
-import { Text, Heading1, Heading2, Heading3, List, ListOrdered, ListTodo, Quote, Code, Table, type LucideIcon } from "lucide-react";
+import { Text, Heading1, Heading2, Heading3, List, ListOrdered, ListTodo, Quote, Code, Table, Image, Columns2, Columns3, type LucideIcon } from "lucide-react";
 import { insertOrUpdateBlockForSlashMenu } from "@blocknote/core";
 import { vi } from "../i18n/vi";
 import type { FolioEditor } from "./schema";
@@ -14,7 +15,10 @@ export type SlashKey =
   | "todoList"
   | "quote"
   | "code"
-  | "table";
+  | "table"
+  | "image"
+  | "columns2"
+  | "columns3";
 
 /** Menu order (tech spec §5.7). Phases 4-5 append Math, CSV, Markdown, Image, File, Date, Page link, Dropdown. */
 export const SLASH_ORDER: readonly SlashKey[] = [
@@ -28,6 +32,9 @@ export const SLASH_ORDER: readonly SlashKey[] = [
   "quote",
   "code",
   "table",
+  "image",
+  "columns2",
+  "columns3",
 ];
 
 export interface FolioSlashItem {
@@ -38,7 +45,7 @@ export interface FolioSlashItem {
   onItemClick: () => void;
 }
 
-const ICONS: Record<SlashKey, LucideIcon> = { text: Text, heading1: Heading1, heading2: Heading2, heading3: Heading3, bulletedList: List, numberedList: ListOrdered, todoList: ListTodo, quote: Quote, code: Code, table: Table };
+const ICONS: Record<SlashKey, LucideIcon> = { text: Text, heading1: Heading1, heading2: Heading2, heading3: Heading3, bulletedList: List, numberedList: ListOrdered, todoList: ListTodo, quote: Quote, code: Code, table: Table, image: Image, columns2: Columns2, columns3: Columns3 };
 
 const ALIASES: Record<SlashKey, string[]> = {
   text: ["paragraph", "p"],
@@ -51,6 +58,9 @@ const ALIASES: Record<SlashKey, string[]> = {
   quote: ["blockquote", ">"],
   code: ["codeblock", "```"],
   table: ["grid"],
+  columns2: ["2 columns", "2 cot", "2 cột"],
+  columns3: ["3 columns", "3 cot", "3 cột"],
+  image: ["photo", "picture", "anh", "ảnh"],
 };
 
 // Same shape as BlockNote's own slash-menu table: 2 rows x 3 columns (header row comes from the block's defaults).
@@ -61,7 +71,8 @@ const EMPTY_TABLE_CONTENT = {
 
 type SlashBlock = Parameters<typeof insertOrUpdateBlockForSlashMenu<FolioEditor["schema"]["blockSchema"], FolioEditor["schema"]["inlineContentSchema"], FolioEditor["schema"]["styleSchema"]>>[1];
 
-const BLOCKS: Record<SlashKey, SlashBlock> = {
+const BLOCKS: Record<Exclude<SlashKey, "columns2" | "columns3">, SlashBlock> = {
+  image: { type: "image" },
   text: { type: "paragraph" },
   heading1: { type: "heading", props: { level: 1 } },
   heading2: { type: "heading", props: { level: 2 } },
@@ -85,6 +96,7 @@ export function slashItems(editor: FolioEditor): FolioSlashItem[] {
     icon: createElement(ICONS[key], { size: 18, "aria-hidden": true }),
     aliases: ALIASES[key],
     onItemClick: () => {
+      if (key === "columns2" || key === "columns3") { insertColumns(editor, key === "columns2" ? 2 : 3); return; }
       insertOrUpdateBlockForSlashMenu(editor, BLOCKS[key]);
     },
   }));

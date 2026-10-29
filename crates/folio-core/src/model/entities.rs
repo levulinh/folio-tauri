@@ -51,3 +51,18 @@ pub struct ApplyResult {
     #[ts(type = "number")]
     pub page_updated_at: i64,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, TS)]
+#[serde(rename_all = "camelCase")]
+#[ts(export)]
+pub struct AssetMeta {
+    pub id: String,
+    pub file_name: String,
+    pub ext: String,
+    pub mime: String,
+    #[ts(type = "number")]
+    pub byte_size: i64,
+    pub sha256: String,
+    #[ts(type = "number")]
+    pub created_at: i64,
+}

@@ -1,3 +1,4 @@
+import type { AssetMeta } from "./generated/AssetMeta";
 import type { Appearance } from "./generated/Appearance";
 import type { ApplyResult } from "./generated/ApplyResult";
 import type { BlockNode } from "./generated/BlockNode";
@@ -12,6 +13,8 @@ export type MenuEvent = "settings" | "new-page" | "new-subpage" | "find" | "sear
 
 /** Everything the UI may ask of the backend. Every method rejects with an `ErrorPayload`. */
 export interface Backend {
+  assetImport(file: File): Promise<AssetMeta>;
+  assetDisplayUrl(storedUrl: string): string;
   appearanceGet(): Promise<Appearance>;
   appearanceSet(appearance: Appearance): Promise<void>;
   pagesList(): Promise<PageMeta[]>;
