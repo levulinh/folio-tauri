@@ -25,6 +25,10 @@ test("slash opens the menu with English labels", async ({ page }) => {
   await page.keyboard.type("/");
   await expect(menu(page)).toBeVisible();
   await expect(items(page)).toHaveText(TITLES);
+  const list = page.getByRole("listbox");
+  expect((await list.boundingBox())!.height).toBeLessThanOrEqual(330);
+  expect((await list.getByRole("option").first().boundingBox())!.height).toBeLessThanOrEqual(32);
+  expect(await list.locator('[data-position="left"]').first().evaluate((el) => getComputedStyle(el).backgroundColor)).toBe("rgba(0, 0, 0, 0)");
   await expect(page.getByRole("listbox").getByRole("option")).toHaveCount(TITLES.length);
 });
 

@@ -11,12 +11,12 @@ export function SlashMenuComponent({ items, loadingState, selectedIndex, onItemC
   const dict = useDictionary();
   return (
     <div role="none" data-testid="slash-menu">
-      <Components.SuggestionMenu.Root id="bn-suggestion-menu" className="bn-suggestion-menu">
+      <Components.SuggestionMenu.Root id="bn-suggestion-menu" className="bn-suggestion-menu folio-slash-menu">
         {(items as FolioSlashItem[]).map((item, i) => (
           <div key={item.key} role="none" data-testid="slash-item" data-key={item.key}>
             <Components.SuggestionMenu.Item
               className="bn-suggestion-menu-item"
-              item={item}
+              item={{ ...item, size: "small" }}
               id={`bn-suggestion-menu-item-${i}`}
               isSelected={i === selectedIndex}
               onClick={() => onItemClick?.(item)}

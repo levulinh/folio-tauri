@@ -53,3 +53,26 @@
 
 /* The editor is a writing canvas, not a boxed form control (owner feedback). */
 .bn-container .bn-editor:focus-visible { outline: none; box-shadow: none; }
+
+/* Compact slash commands: quiet icons and single-line rows, scoped to Folio's menu. */
+:root .bn-root .folio-slash-menu {
+  width: 216px;
+  max-width: calc(100vw - 32px);
+  max-height: min(328px, 50vh);
+  padding: 4px;
+  border-radius: 8px;
+}
+:root .bn-root .folio-slash-menu .bn-suggestion-menu-item {
+  min-height: 30px;
+  height: 30px;
+  padding: 5px 8px;
+  gap: 9px;
+}
+:root .bn-root .folio-slash-menu .bn-mt-suggestion-menu-item-section[data-position="left"] {
+  padding: 0;
+  background: transparent;
+  color: var(--text-muted);
+}
+:root .bn-root .folio-slash-menu .bn-mt-suggestion-menu-item-section svg { width: 16px; height: 16px; }
+:root .bn-root .folio-slash-menu .bn-mt-suggestion-menu-item-title { font-size: 13px; line-height: 20px; font-weight: 400; }
+:root .bn-root .folio-slash-menu .bn-mt-suggestion-menu-item-body { padding-right: 0; }
