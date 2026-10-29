@@ -18,6 +18,7 @@ const blocks = (page: Page) => editorOf(page).locator(".bn-block-content");
 const TITLES = [
   "Text", "Heading 1", "Heading 2", "Heading 3", "Bulleted list",
   "Numbered list", "To-do list", "Quote", "Code", "Table", "Image", "2 columns", "3 columns",
+  "Subpage",
 ];
 
 test("slash opens the menu with English labels", async ({ page }) => {

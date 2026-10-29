@@ -20,6 +20,7 @@ describe("slashItems", () => {
     expect(items.map((i) => i.title)).toEqual([
       "Text", "Heading 1", "Heading 2", "Heading 3", "Bulleted list",
       "Numbered list", "To-do list", "Quote", "Code", "Table", "Image", "2 columns", "3 columns",
+      "Subpage",
     ]);
   });
 
@@ -33,6 +34,8 @@ describe("slashItems", () => {
     const items = slashItems(editor);
     expect(keys(filterSlashItems(items, "h2"))).toEqual(["heading2"]);
     expect(keys(filterSlashItems(items, "todo"))).toEqual(["todoList"]);
+    expect(keys(filterSlashItems(items, "subpage"))).toEqual(["page"]);
+    expect(keys(filterSlashItems(items, "trang con"))).toEqual(["page"]);
   });
 
   it("empty query returns all", () => {

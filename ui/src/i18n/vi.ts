@@ -9,6 +9,8 @@ export const vi = {
   },
   wordmark: "Folio",
   untitled: "Không có tiêu đề",
+  // Not in §5.13's table; needed by subpage rows whose page was deleted (D-039).
+  subpageMissing: "Trang đã bị xoá",
   newPage: "Trang mới",
   newSubpage: "Thêm trang con",
   rename: "Đổi tên",
@@ -42,6 +44,7 @@ export const vi = {
     image: "Image",
     columns2: "2 columns",
     columns3: "3 columns",
+    page: "Subpage",
   },
   errors: {
     not_found: "Không tìm thấy mục này",
