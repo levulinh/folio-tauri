@@ -1,0 +1,10 @@
+#!/bin/sh
+set -eu
+expected='levulinh <levulinhkr@gmail.com>'
+for kind in AUTHOR COMMITTER; do
+  actual=$(git var "GIT_${kind}_IDENT")
+  case "$actual" in
+    "$expected "*) ;;
+    *) echo "Commit blocked: $kind must be $expected" >&2; exit 1 ;;
+  esac
+done
