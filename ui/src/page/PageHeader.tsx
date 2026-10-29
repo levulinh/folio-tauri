@@ -1,9 +1,10 @@
 import { vi } from "../i18n/vi";
+import { openPage } from "../state/pageActions";
 import { usePagesStore } from "../state/pagesStore";
 import { SaveStatus } from "./SaveStatus";
 import styles from "./PageHeader.module.css";
 
-/** Names come from the live page tree, including the current page. */
+/** Names come from the live page tree, including the current page. Ancestors navigate on click. */
 export function PageHeader({ pageId }: { pageId: string }) {
   const pages = usePagesStore((state) => state.pages);
   const byId = new Map(pages.map((page) => [page.id, page]));
@@ -20,7 +21,24 @@ export function PageHeader({ pageId }: { pageId: string }) {
     <header className={styles.header} data-testid="page-header">
       <div className={styles.breadcrumb} data-testid="page-breadcrumb">
         <span className={styles.ancestors}>
-          {path.map((page) => <span className={styles.ancestor} key={page.id}><span className={styles.name}>{page.title || vi.untitled}</span><span aria-hidden="true">/</span></span>)}
+          {path.map((page) => {
+            const name = page.title || vi.untitled;
+            return (
+              <span className={styles.ancestor} key={page.id}>
+                <button
+                  type="button"
+                  className={styles.name}
+                  title={name}
+                  data-testid="breadcrumb-ancestor"
+                  data-page-id={page.id}
+                  onClick={() => openPage(page.id)}
+                >
+                  {name}
+                </button>
+                <span aria-hidden="true">/</span>
+              </span>
+            );
+          })}
         </span>
         {active && <span className={styles.active}>{active.title || vi.untitled}</span>}
       </div>

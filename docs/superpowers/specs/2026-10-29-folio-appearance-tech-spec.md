@@ -110,7 +110,7 @@ Keyboard control focus outline 2 px/offset 2 px. Writing canvases have no outlin
 ## 7. Shell layout
 - Sidebar 248 px; retain 28 px top drag strips and D-032 permissions. Interactive elements outside drag regions.
 - Wordmark, existing search/section/tree; bottom New page and Settings. No account UI; preserve current search shortcut, do not adopt mockup Cmd+K.
-- PageHeader below drag strip: min-height 34 px, padding-inline 28 px, real ancestor breadcrumb plus one existing SaveStatus. Plain-text breadcrumb this phase; existing untitled fallback; truncate ancestors first, keep errors visible.
+- PageHeader below drag strip: min-height 34 px, padding-inline 28 px, real ancestor breadcrumb plus one existing SaveStatus. Ancestor items are buttons that open that page (D-038); the current title stays plain text; existing untitled fallback; truncate ancestors first, keep errors visible.
 - Page width 100%, max 1044 px border-box, 72 px gutters => max text 900 px; top padding 35 px below header, bottom 160 px. Minimum window 800×500.
 - Title 40 px/1.2 weight 650; editor 16 px/1.7; sidebar 13 px; metadata 12 px. Preserve heading semantics and title input/flush; title/paragraph x difference <=2 px.
 - Transparent editor, no card; handles within gutter and overlays within viewport. Table may scroll in wrapper, not main. Long titles/deep tree ellipsize without hiding actions. Keep test ids and existing controls; sidebar collapse deferred.

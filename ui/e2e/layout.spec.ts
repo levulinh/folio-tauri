@@ -128,6 +128,24 @@ test("long titles and deep tree keep breadcrumb and row actions usable", async (
 });
 
 
+test("breadcrumb ancestors open their page", async ({ page }) => {
+  const parent = page.getByTestId("tree-item").first();
+  await parent.hover();
+  await parent.getByTestId("tree-item-add-child").click();
+  await expect(page.getByTestId("tree-item")).toHaveCount(2);
+  await page.getByTestId("page-title").fill("Trang con");
+  await page.getByTestId("page-title").blur();
+  const breadcrumb = page.getByTestId("page-breadcrumb");
+  const ancestor = breadcrumb.getByTestId("breadcrumb-ancestor");
+  await expect(ancestor).toHaveCount(1);
+  await expect(ancestor).toHaveText("Không có tiêu đề");
+  await expect(breadcrumb).toContainText("Trang con");
+  await ancestor.click();
+  await expect(page.getByTestId("tree-item").first()).toHaveAttribute("aria-selected", "true");
+  await expect(breadcrumb.getByTestId("breadcrumb-ancestor")).toHaveCount(0);
+  await expect(page.getByTestId("editor")).toContainText("Một đoạn văn");
+});
+
 test("writing surfaces have no focus box while keyboard controls keep their focus indicator", async ({ page }) => {
   const editor = page.locator(".bn-editor");
   await editor.click();
