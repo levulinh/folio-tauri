@@ -1,5 +1,7 @@
 # Folio
 
+<img src="crates/folio-app/icons/128x128@2x.png" alt="Folio app icon" width="128" height="128">
+
 A local-first notes app built with **Rust, Tauri 2, React and BlockNote**. Folio combines a nested page sidebar with a block editor, rich tables and a quiet writing interface.
 
 **Status:** early development, currently focused on macOS. Windows, a production web app, sync and AI integration are future work.
