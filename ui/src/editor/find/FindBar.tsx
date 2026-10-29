@@ -47,7 +47,7 @@ export function FindBar() {
   useEffect(
     () =>
       backend.onMenu("find", () => {
-        if (useUiStore.getState().settingsOpen) return;
+        if (useUiStore.getState().settingsOpen || useUiStore.getState().searchOpen) return;
         setOpen(true);
         setFocusTick((t) => t + 1);
       }),

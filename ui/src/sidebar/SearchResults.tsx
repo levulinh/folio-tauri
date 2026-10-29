@@ -8,8 +8,8 @@ export function openHit(hit: SearchHit): void {
   openPage(hit.pageId);
 }
 
-/** Result list shown in place of the tree. Snippets are rendered as plain text. */
-export function SearchResults({ hits, stale }: { hits: SearchHit[] | null; stale: boolean }) {
+/** Result list in the search dialog. Snippets are rendered as plain text. */
+export function SearchResults({ hits, stale, onSelect = openHit }: { hits: SearchHit[] | null; stale: boolean; onSelect?(hit: SearchHit): void }) {
   const current = usePageStore((s) => s.pageId);
   if (hits === null) return null;
   if (hits.length === 0) {
@@ -29,7 +29,8 @@ export function SearchResults({ hits, stale }: { hits: SearchHit[] | null; stale
             aria-current={current === hit.pageId ? "page" : undefined}
             data-testid="search-result"
             data-page-id={hit.pageId}
-            onClick={() => openHit(hit)}
+            disabled={stale}
+            onClick={() => onSelect(hit)}
           >
             <span className={styles.title} data-testid="search-result-title">
               {hit.pageTitle === "" ? vi.untitled : hit.pageTitle}

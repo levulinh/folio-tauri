@@ -1,44 +1,27 @@
-import { Plus, Settings } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Plus, Settings, Search } from "lucide-react";
+import { useEffect, useRef } from "react";
 import { backend } from "../backend";
 import { vi } from "../i18n/vi";
 import { useUiStore } from "../state/uiStore";
 import { createAndOpenPage } from "../state/pageActions";
 import { PageTree } from "./PageTree";
-import { SearchBox } from "./SearchBox";
-import { SearchResults, openHit } from "./SearchResults";
-import { useSearchResults } from "./useSearchResults";
+import { SearchDialog } from "./SearchDialog";
 import styles from "./Sidebar.module.css";
 
 export function Sidebar({ onOpenSettings }: { onOpenSettings?: (source?: HTMLElement) => void }) {
-  const [query, setQuery] = useState("");
-  const inputRef = useRef<HTMLInputElement>(null);
-  const { query: hitsQuery, hits, searchNow } = useSearchResults(query);
-  const searching = query.trim() !== "";
-
-  useEffect(() => backend.onMenu("search", () => { if (!useUiStore.getState().settingsOpen) inputRef.current?.focus(); }), []);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const searchOpen = useUiStore((s) => s.searchOpen);
+  const openSearch = () => { if (!useUiStore.getState().settingsOpen) useUiStore.getState().setSearchOpen(true); };
+  useEffect(() => backend.onMenu("search", () => { if (!useUiStore.getState().settingsOpen) useUiStore.getState().setSearchOpen(true); }), []);
 
   return (
     <aside className={styles.sidebar}>
       <div className={styles.drag} data-tauri-drag-region />
       <div className={styles.brand}><span className={styles.mark} aria-hidden="true">F</span>{vi.wordmark}</div>
-      <SearchBox
-        onQueryChange={setQuery}
-        onEnter={() => {
-          if (query.trim() === "") return;
-          if (hitsQuery === query && hits) {
-            if (hits[0]) openHit(hits[0]);
-            return;
-          }
-          // Results belong to an older query (or none yet): search the typed query now.
-          void searchNow(query).then((found) => {
-            if (found?.[0]) openHit(found[0]);
-          });
-        }}
-        inputRef={inputRef}
-      />
+      <button type="button" ref={triggerRef} className={styles.searchTrigger} id="folio-search-trigger" data-testid="search-open" aria-haspopup="dialog" aria-expanded={searchOpen} onClick={openSearch}><Search size={16} aria-hidden="true" /><span>{vi.searchPlaceholder}</span></button>
+      <SearchDialog restoreFocus={() => { if (!useUiStore.getState().settingsOpen) triggerRef.current?.focus(); }} opened={searchOpen} onClose={() => useUiStore.getState().setSearchOpen(false)} />
       <div className={styles.section}>{vi.pagesSection}</div>
-      <nav className={styles.scroll}>{searching ? <SearchResults hits={hits} stale={hitsQuery !== query} /> : <PageTree />}</nav>
+      <nav className={styles.scroll}><PageTree /></nav>
       <div className={styles.bottom}>
         <button
           type="button"

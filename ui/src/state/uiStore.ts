@@ -8,6 +8,8 @@ interface Toast {
 }
 
 interface UiState {
+  searchOpen: boolean;
+  setSearchOpen(v: boolean): void;
   settingsOpen: boolean;
   setSettingsOpen(v: boolean): void;
   findOpen: boolean;
@@ -25,6 +27,8 @@ interface UiState {
 let nextToast = 0;
 
 export const useUiStore = create<UiState>((set) => ({
+  searchOpen: false,
+  setSearchOpen: (searchOpen) => set({ searchOpen }),
   settingsOpen: false,
   setSettingsOpen: (settingsOpen) => set({ settingsOpen }),
   findOpen: false,

@@ -477,6 +477,7 @@ test("search finds text typed in a cell", async ({ page }) => {
   await focusCell(page, 1, 1);
   await page.keyboard.type("Hà Nội");
   await settle(page);
+  await page.getByTestId("search-open").click();
   await page.getByTestId("search-input").fill("ha noi");
   await expect(page.getByTestId("search-result")).toHaveCount(1);
   await expect(page.getByTestId("search-result").first()).toContainText("Hà Nội");

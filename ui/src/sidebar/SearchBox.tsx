@@ -6,11 +6,12 @@ import styles from "./SearchBox.module.css";
 interface Props {
   onQueryChange(query: string): void;
   onEnter(): void;
+  onEscape?(): void;
   inputRef: RefObject<HTMLInputElement | null>;
 }
 
 /** Search input. Never reports a query or reacts to Enter while an IME composition is active. */
-export function SearchBox({ onQueryChange, onEnter, inputRef }: Props) {
+export function SearchBox({ onQueryChange, onEnter, inputRef, onEscape }: Props) {
   const [text, setText] = useState("");
   const [composing, setComposing] = useState(false);
 
@@ -19,6 +20,7 @@ export function SearchBox({ onQueryChange, onEnter, inputRef }: Props) {
       <Search size={16} aria-hidden="true" />
       <input
         ref={inputRef}
+        data-autofocus
         className={styles.box}
         data-testid="search-input"
         type="search"
@@ -39,6 +41,8 @@ export function SearchBox({ onQueryChange, onEnter, inputRef }: Props) {
           const composingNow = composing || e.nativeEvent.isComposing || e.keyCode === 229;
           if (e.key === "Escape") {
             if (composingNow) return; // Escape cancels the IME composition, not the query
+            e.preventDefault();
+            if (onEscape) { onEscape(); return; }
             setText("");
             onQueryChange("");
             return;

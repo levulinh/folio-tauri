@@ -56,7 +56,8 @@ test("focus trap, escape, restore, shortcut and menu guard work without a page",
 });
 
 test("composition defers and deduplicates opening and IME escape stays open", async ({ page }) => {
-  const input = page.getByTestId("search-input");
+  await page.getByTestId("empty-create-first").click();
+  const input = page.getByTestId("page-title");
   await input.focus();
   await input.dispatchEvent("compositionstart");
   await page.evaluate(() => { window.__folioFake!.emitMenu("settings"); window.__folioFake!.emitMenu("settings"); });

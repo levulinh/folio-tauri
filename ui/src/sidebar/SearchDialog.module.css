@@ -1,0 +1,10 @@
+.content { background: var(--bg-popover); color: var(--text); border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 18px 64px #0003; overflow: hidden; max-width: calc(100vw - 40px); }
+.hiddenHeader { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); }
+.body { padding: 0; }
+.header { display: flex; align-items: center; gap: 8px; padding: 8px 14px; border-bottom: 1px solid var(--border); }
+.close { display: grid; place-items: center; flex: none; width: 28px; height: 28px; border: 0; border-radius: 6px; color: var(--text-muted); background: transparent; cursor: pointer; }
+.close:hover { background: var(--bg-hover); }
+.results { padding: 10px; max-height: min(420px, 48vh); overflow-y: auto; min-height: 110px; }
+.hint { color: var(--text-muted); font-size: 14px; padding: 18px 12px; }
+.footer { display: flex; justify-content: space-between; padding: 11px 20px; border-top: 1px solid var(--border); font-size: 11px; color: var(--text-muted); }
+@media (prefers-reduced-motion: reduce) { .content { transition-duration: 0ms !important; animation: none !important; } }

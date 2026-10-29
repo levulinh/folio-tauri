@@ -28,12 +28,16 @@ export function App() {
     }
     opener.current = source ?? (deferred.current ? opener.current : (document.activeElement instanceof HTMLElement ? document.activeElement : null));
     source?.focus();
+    useUiStore.getState().setSearchOpen(false);
     useUiStore.getState().setSettingsOpen(true);
   }, []);
   const closeSettings = useCallback(() => {
     useUiStore.getState().setSettingsOpen(false);
     const target = opener.current;
-    requestAnimationFrame(() => target?.focus());
+    requestAnimationFrame(() => {
+      if (target?.isConnected) target.focus();
+      else document.getElementById("folio-search-trigger")?.focus();
+    });
   }, []);
   const loaded = usePagesStore((s) => s.loaded);
   const empty = usePagesStore((s) => s.pages.length === 0);
@@ -59,14 +63,14 @@ export function App() {
     document.addEventListener("keydown", shortcut, true);
     const offs = [
       backend.onMenu("settings", openSettings),
-      backend.onMenu("new-page", () => { if (!useUiStore.getState().settingsOpen) void createAndOpenPage(); }),
+      backend.onMenu("new-page", () => { if (!useUiStore.getState().settingsOpen && !useUiStore.getState().searchOpen) void createAndOpenPage(); }),
       backend.onMenu("new-subpage", () => {
-        if (useUiStore.getState().settingsOpen) return;
+        if (useUiStore.getState().settingsOpen || useUiStore.getState().searchOpen) return;
         const current = usePageStore.getState().pageId;
         if (current !== null) void createAndOpenPage(current);
       }),
-      backend.onMenu("undo", () => { if (!useUiStore.getState().settingsOpen) routeMenuHistory("undo"); }),
-      backend.onMenu("redo", () => { if (!useUiStore.getState().settingsOpen) routeMenuHistory("redo"); }),
+      backend.onMenu("undo", () => { if (!useUiStore.getState().settingsOpen && !useUiStore.getState().searchOpen) routeMenuHistory("undo"); }),
+      backend.onMenu("redo", () => { if (!useUiStore.getState().settingsOpen && !useUiStore.getState().searchOpen) routeMenuHistory("redo"); }),
       backend.onFlushRequest(flushForQuit),
     ];
     return () => {

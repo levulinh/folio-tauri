@@ -1,3 +1,5 @@
+import { MantineProvider } from "@mantine/core";
+import { useUiStore } from "../state/uiStore";
 import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SearchHit } from "../backend/generated/SearchHit";
@@ -19,6 +21,8 @@ const hit = (id: string): SearchHit => ({ pageId: id, pageTitle: id, snippet: ""
 const input = () => screen.getByTestId("search-input");
 
 beforeEach(() => {
+  useUiStore.setState({ searchOpen: false, settingsOpen: false });
+  vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
   vi.useFakeTimers();
   search.mockReset();
   open.mockClear();
@@ -33,7 +37,8 @@ afterEach(() => {
 
 describe("Sidebar Enter", () => {
   it("opens the first hit of the typed query, not of a prefix, when pressed before the debounce", async () => {
-    render(<Sidebar />);
+    render(<MantineProvider env="test"><Sidebar /></MantineProvider>);
+    fireEvent.click(screen.getByTestId("search-open"));
     fireEvent.change(input(), { target: { value: "da na" } });
     await act(async () => {
       await vi.advanceTimersByTimeAsync(200);
@@ -48,7 +53,8 @@ describe("Sidebar Enter", () => {
   });
 
   it("opens the first hit when pressed before any result arrived", async () => {
-    render(<Sidebar />);
+    render(<MantineProvider env="test"><Sidebar /></MantineProvider>);
+    fireEvent.click(screen.getByTestId("search-open"));
     fireEvent.change(input(), { target: { value: "abc" } });
     await act(async () => {
       fireEvent.keyDown(input(), { key: "Enter", keyCode: 13 });
@@ -60,7 +66,8 @@ describe("Sidebar Enter", () => {
   it("does not open a hit if the query changed while the Enter search was running", async () => {
     let resolve!: (h: SearchHit[]) => void;
     search.mockImplementationOnce(() => new Promise((r) => (resolve = r)));
-    render(<Sidebar />);
+    render(<MantineProvider env="test"><Sidebar /></MantineProvider>);
+    fireEvent.click(screen.getByTestId("search-open"));
     fireEvent.change(input(), { target: { value: "abc" } });
     await act(async () => {
       fireEvent.keyDown(input(), { key: "Enter", keyCode: 13 });
@@ -76,13 +83,14 @@ describe("Sidebar Enter", () => {
 
 describe("Sidebar search clear", () => {
   it("returns to the page tree when a type=search input is cleared natively (WebKit clear button)", async () => {
-    render(<Sidebar />);
+    render(<MantineProvider env="test"><Sidebar /></MantineProvider>);
+    fireEvent.click(screen.getByTestId("search-open"));
     expect(input().getAttribute("type")).toBe("search");
     fireEvent.change(input(), { target: { value: "abc" } });
     await act(async () => {
       await vi.advanceTimersByTimeAsync(300);
     });
-    expect(screen.queryByTestId("tree")).toBeNull();
+    expect(screen.getByTestId("tree")).toBeTruthy();
 
     // WebKit's clear button empties the field through an `input` event, no key events.
     await act(async () => {
@@ -95,7 +103,8 @@ describe("Sidebar search clear", () => {
 
 describe("appearance settings", () => {
   it("offers a settings opener even when no page is selected", () => {
-    render(<Sidebar />);
+    render(<MantineProvider env="test"><Sidebar /></MantineProvider>);
+    fireEvent.click(screen.getByTestId("search-open"));
     expect(screen.getByTestId("open-settings").textContent).toContain("Cài đặt");
   });
 });

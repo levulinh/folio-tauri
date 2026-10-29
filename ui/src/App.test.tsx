@@ -1,3 +1,4 @@
+import { MantineProvider } from "@mantine/core";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createFakeBackend } from "./backend/fakeBackend";
@@ -18,7 +19,8 @@ describe("App initial load", () => {
     usePagesStore.setState({ pages: [], loaded: false });
     useUiStore.setState({ toasts: [] });
 
-    render(<App />);
+    vi.stubGlobal("matchMedia", vi.fn(() => ({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })));
+    render(<MantineProvider env="test"><App /></MantineProvider>);
 
     expect(screen.getByTestId("sidebar-new-page")).toBeTruthy();
     expect(await screen.findByTestId("toast")).toBeTruthy();
