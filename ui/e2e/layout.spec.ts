@@ -72,3 +72,56 @@ for (const scheme of ["light", "dark"] as const) {
     expect(focused).not.toBe("none");
   });
 }
+
+
+test("shell dimensions, typography and minimum viewport remain usable", async ({ page }) => {
+  const aside = page.locator("aside");
+  expect((await aside.boundingBox())!.width).toBe(248);
+  const strips = page.locator("[data-tauri-drag-region]");
+  await expect(strips).toHaveCount(2);
+  for (const strip of await strips.all()) expect((await strip.boundingBox())!.height).toBe(28);
+  const header = page.getByTestId("page-header");
+  await expect(header).toBeVisible();
+  await expect(page.getByTestId("save-status")).toHaveCount(1);
+  const title = page.getByTestId("page-title");
+  const style = await title.evaluate((el) => { const s = getComputedStyle(el); return { size: s.fontSize, weight: s.fontWeight, line: s.lineHeight }; });
+  expect(style).toEqual({ size: "40px", weight: "650", line: "48px" });
+  expect((await title.boundingBox())!.y - ((await header.boundingBox())!.y + (await header.boundingBox())!.height)).toBeCloseTo(35, 0);
+  await page.setViewportSize({ width: 800, height: 500 });
+  const main = await mainBox(page);
+  const box = (await title.boundingBox())!;
+  const text = (await page.getByTestId("editor").locator(".bn-inline-content").first().boundingBox())!;
+  expect(Math.abs(box.x - text.x)).toBeLessThanOrEqual(2);
+  expect(Math.abs(box.x - main.x - 72)).toBeLessThanOrEqual(1);
+  expect(Math.abs(box.width - (main.width - 144))).toBeLessThanOrEqual(1);
+  expect(await page.locator("main").evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+  await expect(page.getByTestId("open-settings")).toBeInViewport();
+});
+
+test("long titles and deep tree keep breadcrumb and row actions usable", async ({ page }) => {
+  await page.setViewportSize({ width: 800, height: 500 });
+  const longTitle = "Long title ".repeat(50).slice(0, 500);
+  await page.getByTestId("page-title").fill(longTitle);
+  await page.getByTestId("page-title").blur();
+  await expect(page.getByTestId("tree-item-title").first()).toHaveText(longTitle);
+  for (let depth = 0; depth < 12; depth++) {
+    const item = page.getByTestId("tree-item").last();
+    await item.hover();
+    await item.getByTestId("tree-item-add-child").click();
+    await expect(page.getByTestId("tree-item")).toHaveCount(depth + 2);
+  }
+  const last = page.getByTestId("tree-item").last();
+  await last.hover();
+  const actions = last.getByTestId("tree-item-menu");
+  const a = (await actions.boundingBox())!;
+  const side = (await page.locator("aside").boundingBox())!;
+  expect(a.x + a.width).toBeLessThanOrEqual(side.x + side.width);
+  await actions.click();
+  await page.getByTestId("menu-rename").click();
+  await expect(last.getByTestId("tree-item-rename")).toBeFocused();
+  const breadcrumb = page.getByTestId("page-breadcrumb");
+  await expect(breadcrumb).toContainText(longTitle);
+  await expect(breadcrumb).toContainText("Không có tiêu đề");
+  await expect(page.getByTestId("save-status")).toBeVisible();
+  expect(await page.locator("main").evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+});

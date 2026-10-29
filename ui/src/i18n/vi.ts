@@ -7,6 +7,7 @@ export const vi = {
     saving: "Đang lưu…", loadError: "Không tải được giao diện. Thử lại.",
     saveError: "Không lưu được giao diện. Thử lại.", retry: "Thử lại",
   },
+  wordmark: "Folio",
   untitled: "Không có tiêu đề",
   newPage: "Trang mới",
   newSubpage: "Thêm trang con",

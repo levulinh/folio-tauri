@@ -1,0 +1,14 @@
+.header {
+  min-height: 34px;
+  padding: 0 28px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+.breadcrumb { display: flex; align-items: center; min-width: 0; flex: 1; overflow: hidden; }
+.ancestors { display: flex; align-items: center; min-width: 0; overflow: hidden; flex: 0 1 auto; }
+.ancestor { display: flex; align-items: center; gap: 8px; min-width: 0; flex: 0 1 auto; margin-right: 8px; }
+.name, .active { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.active { color: var(--text); flex: 0 1 auto; min-width: min(100%, 100px); }

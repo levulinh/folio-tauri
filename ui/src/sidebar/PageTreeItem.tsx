@@ -34,7 +34,7 @@ export function PageTreeItem({ page, depth, expanded, setExpanded, onRequestDele
     <li role="none">
       <div
         className={`${styles.row} ${selected ? styles.selected : ""}`}
-        style={{ paddingLeft: 6 + depth * INDENT_PX }}
+        style={{ paddingLeft: 6 + Math.min(depth * INDENT_PX, 112) }}
         role="treeitem"
         aria-selected={selected}
         aria-expanded={children.length > 0 ? isOpen : undefined}
