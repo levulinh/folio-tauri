@@ -228,3 +228,7 @@ Status: accepted.
 - `user_version` greater than `MIGRATIONS.len()` fails with `CoreError::SchemaTooNew { found, known }` (code `"db"`, no new code) and leaves the file untouched (the version is read plainly before the WAL switch, and again inside the migration transaction); the shell's existing open error prefixes the db path. `db::MIGRATIONS` is `pub` so tests compare against the real count.
 - All migrations run inside one transaction. A future migration that needs `PRAGMA foreign_keys=OFF` (table rebuild) must be handled outside it, since that pragma is a no-op inside a transaction.
 Status: accepted.
+
+## D-032 The overlay title bar can drag the window
+`titleBarStyle = "Overlay"` hides the native title bar, so the window moves only through the `data-tauri-drag-region` strips (sidebar top and main column top, 28 px). That attribute calls the `start_dragging` window command (and `internal_toggle_maximize` on a double-click, the macOS title-bar zoom), neither of which `core:default` includes: `capabilities/default.json` also grants `core:window:allow-start-dragging` and `core:window:allow-internal-toggle-maximize` (and nothing broader). Test: `main_window_may_start_dragging` in `crates/folio-app/src/main.rs`.
+Status: accepted.

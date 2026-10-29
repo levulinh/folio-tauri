@@ -24,3 +24,23 @@ fn main() {
         .expect("error while building Folio (see the message above for the cause)");
     app.run(|handle, event| quit::handle_run_event(handle, &event));
 }
+
+#[cfg(test)]
+mod tests {
+    /// `data-tauri-drag-region` calls `start_dragging` (drag) and `internal_toggle_maximize`
+    /// (double-click), which `core:default` does not allow: without them the overlay title bar
+    /// cannot move or zoom the window (D-032).
+    #[test]
+    fn main_window_may_start_dragging() {
+        let capability = include_str!("../capabilities/default.json");
+        for permission in [
+            "core:window:allow-start-dragging",
+            "core:window:allow-internal-toggle-maximize",
+        ] {
+            assert!(
+                capability.contains(&format!("\"{permission}\"")),
+                "{permission}"
+            );
+        }
+    }
+}
