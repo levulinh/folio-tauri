@@ -76,3 +76,10 @@
 :root .bn-root .folio-slash-menu .bn-mt-suggestion-menu-item-section svg { width: 16px; height: 16px; }
 :root .bn-root .folio-slash-menu .bn-mt-suggestion-menu-item-title { font-size: 13px; line-height: 20px; font-weight: 400; }
 :root .bn-root .folio-slash-menu .bn-mt-suggestion-menu-item-body { padding-right: 0; }
+
+/* Quiet gutter icons; keep the upstream button hit areas and drag behavior. */
+:root .bn-root .bn-side-menu .mantine-UnstyledButton-root:not(.mantine-Menu-item) svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 1.5;
+}
