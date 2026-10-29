@@ -58,18 +58,19 @@ test("side menu fits in the gutter", async ({ page }) => {
 });
 
 for (const scheme of ["light", "dark"] as const) {
-  test(`title input shows a visible focus indicator (${scheme})`, async ({ page }) => {
+  test(`title focus uses a faint background instead of a border (${scheme})`, async ({ page }) => {
     await page.emulateMedia({ colorScheme: scheme });
     const title = page.getByTestId("page-title");
     await page.locator("aside").click({ position: { x: 5, y: 400 } }); // title not focused
     await expect(title).not.toBeFocused();
-    const ring = () => title.evaluate((el) => getComputedStyle(el).boxShadow);
-    const idle = await ring();
+    const background = () => title.evaluate((el) => getComputedStyle(el).backgroundColor);
+    const idle = await background();
     await title.focus();
     await expect(title).toBeFocused();
-    const focused = await ring();
+    const focused = await background();
     expect(focused).not.toBe(idle);
-    expect(focused).not.toBe("none");
+    await expect(title).toHaveCSS("outline-style", "none");
+    await expect(title).toHaveCSS("box-shadow", "none");
   });
 }
 
@@ -124,4 +125,21 @@ test("long titles and deep tree keep breadcrumb and row actions usable", async (
   await expect(breadcrumb).toContainText("Không có tiêu đề");
   await expect(page.getByTestId("save-status")).toBeVisible();
   expect(await page.locator("main").evaluate((el) => el.scrollWidth <= el.clientWidth)).toBe(true);
+});
+
+
+test("writing surfaces have no focus box while keyboard controls keep their focus indicator", async ({ page }) => {
+  const editor = page.locator(".bn-editor");
+  await editor.click();
+  await page.keyboard.type(" Tiếp tục gõ");
+  await expect(editor).toHaveCSS("outline-style", "none");
+  await expect(editor).toHaveCSS("box-shadow", "none");
+  const title = page.getByTestId("page-title");
+  await title.focus();
+  await expect(title).toHaveCSS("outline-style", "none");
+  await expect(title).toHaveCSS("box-shadow", "none");
+  const settings = page.getByTestId("open-settings");
+  await settings.focus();
+  await expect(settings).toHaveCSS("outline-style", "solid");
+  await expect(settings).toHaveCSS("outline-width", "2px");
 });

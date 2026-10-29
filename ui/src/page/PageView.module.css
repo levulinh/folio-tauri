@@ -24,9 +24,11 @@
   line-height: 1.2;
 }
 
-/* outline stays off (it would draw a box round a heading); an accent underline marks focus without shifting layout. */
+/* Writing surfaces show their caret rather than a focus box or underline. */
 .title:focus-visible {
-  box-shadow: 0 2px 0 var(--accent);
+  box-shadow: none;
+  background-color: color-mix(in srgb, var(--text) 3%, transparent);
+  border-radius: 3px;
 }
 
 .title::placeholder {

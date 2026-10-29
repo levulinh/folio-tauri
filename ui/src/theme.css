@@ -50,6 +50,6 @@ body { background: var(--bg); color: var(--text); font: 16px/1.7 var(--font); -w
 button { font: inherit; color: inherit; }
 button, input[type="radio"], input[type="checkbox"] { accent-color: var(--accent); }
 button { cursor: pointer; }
-:root :where(button, input, select, textarea, [tabindex]):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+:root :where(button, input, select, textarea, [tabindex]):not([contenteditable="true"]):not([data-testid="page-title"]):focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 @media (prefers-reduced-motion: no-preference) { button { transition: background-color 140ms, color 140ms; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }

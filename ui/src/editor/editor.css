@@ -50,3 +50,6 @@
   opacity: 1;
   transition: none;
 }
+
+/* The editor is a writing canvas, not a boxed form control (owner feedback). */
+.bn-container .bn-editor:focus-visible { outline: none; box-shadow: none; }

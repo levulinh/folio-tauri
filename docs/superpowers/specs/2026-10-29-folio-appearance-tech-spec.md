@@ -105,7 +105,7 @@ Neutral surfaces for every accent. CSS Modules/current system font, no new packa
 
 --accent/--bg-selected take palette values. Selected text remains --text. Error/warning/success independent, no recoloring authored content/status labels. Text contrast >=4.5:1; meaningful controls/focus >=3:1. Decorative table borders exempt from control threshold. If actual usage fails, adjust minimally and record replacement/reason.
 
-Focus outline 2 px/offset 2 px (title may use underline). Hover 120–160 ms, no layout animation, reduced-motion disables transitions. Shadows only floating controls/dialogs. Map supported BlockNote/Mantine variables for toolbar, slash/link/drag menus, tables, code, find and toast.
+Keyboard control focus outline 2 px/offset 2 px. Writing canvases have no outline or box-shadow; title focus may use only a faint 3% neutral background (owner feedback). Hover 120–160 ms, no layout animation, reduced-motion disables transitions. Shadows only floating controls/dialogs. Map supported BlockNote/Mantine variables for toolbar, slash/link/drag menus, tables, code, find and toast.
 
 ## 7. Shell layout
 - Sidebar 248 px; retain 28 px top drag strips and D-032 permissions. Interactive elements outside drag regions.
