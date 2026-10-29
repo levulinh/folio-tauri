@@ -1,4 +1,6 @@
 export const Commands = {
+  appearanceGet: "appearance_get",
+  appearanceSet: "appearance_set",
   pagesList: "pages_list",
   pageCreate: "page_create",
   pageRename: "page_rename",

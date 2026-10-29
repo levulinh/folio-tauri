@@ -22,6 +22,8 @@ async function call<T>(command: string, args?: Record<string, unknown>): Promise
 
 export function createTauriBackend(): Backend {
   return {
+    appearanceGet: () => call(Commands.appearanceGet),
+    appearanceSet: (appearance) => call(Commands.appearanceSet, { appearance }),
     pagesList: () => call(Commands.pagesList),
     pageCreate: (parentId, afterId) => call(Commands.pageCreate, { parentId, afterId }),
     pageRename: (id, title) => call(Commands.pageRename, { id, title: toWellFormed(title) }),

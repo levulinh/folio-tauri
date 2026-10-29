@@ -1,3 +1,4 @@
+import type { Appearance } from "./generated/Appearance";
 import type { ApplyResult } from "./generated/ApplyResult";
 import type { BlockNode } from "./generated/BlockNode";
 import type { BlockOp } from "./generated/BlockOp";
@@ -11,6 +12,8 @@ export type MenuEvent = "new-page" | "new-subpage" | "find" | "search" | "undo" 
 
 /** Everything the UI may ask of the backend. Every method rejects with an `ErrorPayload`. */
 export interface Backend {
+  appearanceGet(): Promise<Appearance>;
+  appearanceSet(appearance: Appearance): Promise<void>;
   pagesList(): Promise<PageMeta[]>;
   pageCreate(parentId?: string, afterId?: string): Promise<CreatedPage>;
   pageRename(id: string, title: string): Promise<PageMeta>;

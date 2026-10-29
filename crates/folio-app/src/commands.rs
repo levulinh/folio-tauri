@@ -1,5 +1,6 @@
 //! Tauri commands (§4.2, Phase 1 subset). Each runs its core call via [`blocking`].
 
+use folio_core::appearance::Appearance;
 use folio_core::error::ErrorPayload;
 use folio_core::model::{
     ApplyResult, BlockNode, BlockOp, CreatedPage, PageMeta, SearchHit, TabMeta,
@@ -18,6 +19,8 @@ type CmdResult<T> = Result<T, ErrorPayload>;
 macro_rules! command_list {
     ($cb:ident) => {
         $cb! {
+            appearance_get,
+            appearance_set,
             pages_list,
             page_create,
             page_rename,
@@ -49,6 +52,16 @@ pub const COMMANDS: &[&str] = command_list!(names);
 
 pub fn invoke_handler() -> impl Fn(tauri::ipc::Invoke) -> bool + Send + Sync + 'static {
     command_list!(handler)
+}
+
+#[tauri::command]
+async fn appearance_get(state: State<'_, AppState>) -> CmdResult<Appearance> {
+    blocking(&state, |s| s.appearance_get()).await
+}
+
+#[tauri::command]
+async fn appearance_set(state: State<'_, AppState>, appearance: Appearance) -> CmdResult<()> {
+    blocking(&state, move |s| s.appearance_set(appearance)).await
 }
 
 #[tauri::command]
@@ -141,7 +154,9 @@ mod tests {
     use std::path::PathBuf;
 
     /// Second literal list next to the macro one: adding a command means touching both.
-    const EXPECTED: [&str; 13] = [
+    const EXPECTED: [&str; 15] = [
+        "appearance_get",
+        "appearance_set",
         "pages_list",
         "page_create",
         "page_rename",

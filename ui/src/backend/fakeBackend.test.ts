@@ -333,3 +333,42 @@ describe("persistence and events", () => {
     await expect(b.quitReady()).resolves.toBeUndefined();
   });
 });
+
+
+describe("appearance persistence", () => {
+  it("defaults old envelopes, preserves pages, isolates keys, and clones reads and writes", async () => {
+    const old = createFakeBackend({ persistKey: "appearance-old" });
+    const page = await old.pageCreate();
+    const envelope = JSON.parse(localStorage.getItem("appearance-old")!);
+    delete envelope.appearance;
+    localStorage.setItem("appearance-old", JSON.stringify(envelope));
+    const backend = createFakeBackend({ persistKey: "appearance-old" });
+    expect(await backend.appearanceGet()).toEqual({ mode: "system", accent: "neutral" });
+    const value: { mode: "dark"; accent: "blue" | "purple" } = { mode: "dark", accent: "blue" };
+    await backend.appearanceSet(value);
+    value.accent = "purple";
+    const expected = { mode: "dark", accent: "blue" };
+    const read = await backend.appearanceGet();
+    Object.assign(read, { accent: "purple" });
+    expect(await backend.appearanceGet()).toEqual(expected);
+    expect(await createFakeBackend({ persistKey: "appearance-old" }).appearanceGet()).toEqual(expected);
+    expect((await createFakeBackend({ persistKey: "appearance-old" }).pagesList())[0]?.id).toBe(page.page.id);
+    expect(await createFakeBackend({ persistKey: "appearance-other" }).appearanceGet()).toEqual({ mode: "system", accent: "neutral" });
+  });
+  it("defaults malformed stored appearance and rejects invalid writes without mutation", async () => {
+    localStorage.setItem("appearance-invalid", JSON.stringify({ pages: [], tabs: [], blocks: {}, appearance: { mode: "dark" } }));
+    const backend = createFakeBackend({ persistKey: "appearance-invalid" });
+    expect(await backend.appearanceGet()).toEqual({ mode: "system", accent: "neutral" });
+    await expect(backend.appearanceSet({ mode: "invalid", accent: "blue" } as never)).rejects.toMatchObject({ code: "invalid_op" });
+    expect(await backend.appearanceGet()).toEqual({ mode: "system", accent: "neutral" });
+  });
+  it("rejects storage failure and retains the previous preference", async () => {
+    const backend = createFakeBackend({ persistKey: "appearance-failure" });
+    await backend.appearanceSet({ mode: "light", accent: "olive" });
+    const failure = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new Error("full"); });
+    await expect(backend.appearanceSet({ mode: "dark", accent: "purple" })).rejects.toMatchObject({ code: "db" });
+    failure.mockRestore();
+    expect(await backend.appearanceGet()).toEqual({ mode: "light", accent: "olive" });
+    expect(await createFakeBackend({ persistKey: "appearance-failure" }).appearanceGet()).toEqual({ mode: "light", accent: "olive" });
+  });
+});

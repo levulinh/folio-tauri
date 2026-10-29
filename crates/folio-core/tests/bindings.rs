@@ -1,3 +1,4 @@
+use folio_core::appearance::Appearance;
 use folio_core::error::ErrorPayload;
 use folio_core::model::{
     ApplyResult, BlockNode, BlockOp, CreatedPage, PageMeta, SearchHit, TabMeta,
@@ -88,6 +89,7 @@ fn generated(name: &str) -> String {
 #[test]
 fn export_bindings() {
     let cfg = ts_rs::Config::from_env();
+    Appearance::export_all(&cfg).unwrap();
     PageMeta::export_all(&cfg).unwrap();
     TabMeta::export_all(&cfg).unwrap();
     CreatedPage::export_all(&cfg).unwrap();

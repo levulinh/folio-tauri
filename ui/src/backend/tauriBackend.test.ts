@@ -70,3 +70,13 @@ describe("tauriBackend", () => {
     });
   });
 });
+
+
+it("uses the exact appearance command names and payload", async () => {
+  invoke.mockResolvedValue(undefined);
+  const be = createTauriBackend();
+  const appearance = { mode: "dark", accent: "blue" } as const;
+  await be.appearanceGet();
+  await be.appearanceSet(appearance);
+  expect(invoke.mock.calls).toEqual([["appearance_get", undefined], ["appearance_set", { appearance }]]);
+});

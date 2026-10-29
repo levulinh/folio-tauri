@@ -1,6 +1,7 @@
 import { applyOps, depthFirst, notFound, toTree } from "./fakeApply";
 import { plainText, searchPages, type BlockRec, type PageTexts } from "./fakeSearch";
 import type { Backend, MenuEvent } from "./Backend";
+import type { Appearance } from "./generated/Appearance";
 import type { PageMeta } from "./generated/PageMeta";
 import type { TabMeta } from "./generated/TabMeta";
 
@@ -8,12 +9,22 @@ const SEARCH_LIMIT = 50;
 
 /** Pages keep sibling order by array position; `orderKey` is derived when listing. */
 interface State {
+  readonly appearance: Appearance;
   readonly pages: readonly PageMeta[];
   readonly tabs: readonly TabMeta[];
   readonly blocks: Readonly<Record<string, readonly BlockRec[]>>;
 }
 
-const EMPTY: State = { pages: [], tabs: [], blocks: {} };
+const DEFAULT_APPEARANCE: Appearance = { mode: "system", accent: "neutral" };
+const EMPTY: State = { appearance: DEFAULT_APPEARANCE, pages: [], tabs: [], blocks: {} };
+
+function parseAppearance(value: unknown): Appearance | null {
+  if (typeof value !== "object" || value === null) return null;
+  const { mode, accent } = value as Record<string, unknown>;
+  if ((mode !== "system" && mode !== "light" && mode !== "dark") ||
+      (accent !== "neutral" && accent !== "blue" && accent !== "olive" && accent !== "purple")) return null;
+  return { mode, accent };
+}
 
 export type FakeBackend = Backend & {
   emitMenu(name: MenuEvent): void;
@@ -28,7 +39,7 @@ function load(key: string | undefined): State {
     if (!raw) return EMPTY;
     const parsed = JSON.parse(raw) as Partial<State>;
     if (!Array.isArray(parsed.pages) || !Array.isArray(parsed.tabs) || !parsed.blocks) return EMPTY;
-    return { pages: parsed.pages, tabs: parsed.tabs, blocks: parsed.blocks };
+    return { appearance: parseAppearance(parsed.appearance) ?? DEFAULT_APPEARANCE, pages: parsed.pages, tabs: parsed.tabs, blocks: parsed.blocks };
   } catch {
     return EMPTY;
   }
@@ -83,6 +94,22 @@ export function createFakeBackend(opts: { persistKey?: string } = {}): FakeBacke
   };
 
   return {
+    async appearanceGet() {
+      return { ...state.appearance };
+    },
+    async appearanceSet(appearance) {
+      const value = parseAppearance(appearance);
+      if (!value) throw { code: "invalid_op", message: "Invalid appearance" };
+      const next = { ...state, appearance: value };
+      if (opts.persistKey) {
+        try {
+          localStorage.setItem(opts.persistKey, JSON.stringify(next));
+        } catch (e) {
+          throw { code: "db", message: String(e) };
+        }
+      }
+      state = next;
+    },
     async pagesList() {
       return withKeys(state.pages);
     },
@@ -128,6 +155,7 @@ export function createFakeBackend(opts: { persistKey?: string } = {}): FakeBacke
       const doomed = descendantIds(state.pages, id);
       const doomedTabs = new Set(state.tabs.filter((t) => doomed.has(t.pageId)).map((t) => t.id));
       commit({
+        ...state,
         pages: state.pages.filter((p) => !doomed.has(p.id)),
         tabs: state.tabs.filter((t) => !doomedTabs.has(t.id)),
         blocks: Object.fromEntries(Object.entries(state.blocks).filter(([k]) => !doomedTabs.has(k))),
